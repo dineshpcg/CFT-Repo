@@ -1,0 +1,37 @@
+version: 0.2
+
+phases: 
+    install:
+        runtime-versions:
+            python: 3.7
+    pre_build:
+        commands: 
+            - yum install -y python37
+            - python3.7 -m pip install pytest
+            - pip install pylint
+            - pip3 install --upgrade awscli
+            - chmod +x shell-script/pylint.sh
+            
+    build:
+        commands:
+            - echo "Build is Running"
+            - pytest test.py -v --junitxml="result.xml"
+            - sh shell-script/pylint.sh
+            - aws cloudformation package --template-file cfn/lambda/template.yml --s3-bucket $CODEPIPELINE_BUCKET --kms-key-id $CMKARN --output-template-file samtemplate.yml
+            - aws cloudformation package --template-file cfn/glue/template.yml --s3-bucket $CODEPIPELINE_BUCKET  --kms-key-id $CMKARN --output-template-file gluetemplate.yml
+            - aws cloudformation package --template-file cfn/kinesis/template.yml --s3-bucket $CODEPIPELINE_BUCKET --kms-key-id $CMKARN --output-template-file kinesistemplate.yml
+            - aws cloudformation package --template-file cfn/step-functions/template.yml --s3-bucket $CODEPIPELINE_BUCKET --kms-key-id $CMKARN --output-template-file stepfunctiontemplate.yml
+            - aws s3 sync ./glue/jobs $GLUE_S3_BUCKET --acl bucket-owner-full-control
+    post_build:
+        commands:
+            - echo build completed on `date` 
+reports:
+  arn:aws:codebuild:$AWS_DEFAULT_REGION:063668765682:report-group/inventory-availability-compute-app-dj-project-gluejob-pytest-results:
+    files:
+      - "result.xml"
+    base-directory: './'
+    file-format: JUNITXML
+
+artifacts:
+  files:
+  - '**/*'
