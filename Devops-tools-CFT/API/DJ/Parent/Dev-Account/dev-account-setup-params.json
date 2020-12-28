@@ -1,0 +1,66 @@
+[
+    {
+        "ParameterKey": "CommonName",
+        "ParameterValue": "inventory-availability-api-service-dj"
+    },
+    {
+        "ParameterKey": "SharedServicesAccountNumber",
+        "ParameterValue": "063668765682"
+    },
+    {
+        "ParameterKey": "CloudFormationDeployRoleDescription",
+        "ParameterValue": "The role that has necessary permission to do the deployment"
+    },
+    {
+        "ParameterKey": "CodePipelineCFNDeployRoleDescription",
+        "ParameterValue": "The role that has necessary permission for codepipeline to create resources via cloudformation"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": "arn:aws:kms:ap-southeast-2:063668765682:key/915ed391-b466-485a-8a35-0749e9d17526"
+    },
+    {
+        "ParameterKey": "ECSServiceRoleDescription",
+        "ParameterValue": "The role that has necessary permission for ecs service to communicate with LB's and ec2's"
+    },
+    {
+        "ParameterKey": "ECSTaskExecutionRoleDescription",
+        "ParameterValue": "The role that has necessary permission for ecs tasks to communicate with ECR and cloudwatch logs"
+    },
+    {
+        "ParameterKey": "ECSAutoScalingRoleDescription",
+        "ParameterValue": "The role that has necessary permission for ecs tasks to autoscale as per the needs"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceEnvironment",
+        "ParameterValue": "DEV"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

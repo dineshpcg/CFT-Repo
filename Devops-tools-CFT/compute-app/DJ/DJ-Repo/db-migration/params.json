@@ -1,0 +1,38 @@
+[
+    {
+        "ParameterKey": "RepositoryDescription",
+        "ParameterValue": "These repository is for managing the db migration scripts for DJ" 
+    },
+    {
+        "ParameterKey": "RepositoryName",
+        "ParameterValue": "inventory-availability-db-migration-dj"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    } 
+]

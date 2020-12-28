@@ -1,0 +1,435 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "This template provisions the KMS key and S3 Bucket for codepipeline, bucketpolicy for 
+             codepipeline's bucket and the IAM roles for codebuild and codepipeline for Dev and QA"
+
+Parameters:
+  CommonName:
+    Description: "The name of the repository need to be given"
+    Type: String
+  CodeBuildRoleDescription:
+    Description: "The description to be given for the code build role"
+    Type: String
+  PublishServiceRepoName:
+    Description: "The repository name of the buffer service"
+    Type: String
+  LocationServiceRepoName:
+    Description: "The repository name of the location service"
+    Type: String
+  SKUAttributesServiceRepoName:
+    Description: "The repository name of the SKU attributes service"
+    Type: String
+  SKUConfigServiceRepoName:
+    Description: "The repository name of the SKU config service"
+    Type: String
+  PipeLineRoleDescription:
+    Description: "The description needs to be given for the code pipeline role"
+    Type: String
+  DevAccountNumber:
+    Description: "The AWS account number of compute dev"
+    Type: Number
+  UATAccountNumber:
+    Description: "The AWS account number of compute UAT"
+    Type: Number
+  CloudWatchEventRoleDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  KMSKey:
+    Type: AWS::KMS::Key
+    DependsOn:
+      - CodeBuildRole
+      - PipeLineRole
+    Properties:
+      Description: Used by Assumed Roles in Dev, QA and Prod accounts to Encrypt/Decrypt code
+      EnableKeyRotation: true
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+      KeyPolicy:
+        Version: "2012-10-17"
+        Id: !Ref AWS::StackName
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: 
+                Fn::Sub: arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - "kms:Create*"
+              - "kms:Describe*"
+              - "kms:Enable*"
+              - "kms:List*"
+              - "kms:Put*"
+              - "kms:Update*"
+              - "kms:Revoke*"
+              - "kms:Disable*"
+              - "kms:Get*"
+              - "kms:Delete*"
+              - "kms:ScheduleKeyDeletion"
+              - "kms:CancelKeyDeletion"
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: arn:aws:iam::${DevAccountNumber}:root
+                - Fn::Sub: arn:aws:iam::${UATAccountNumber}:root
+                - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-codebuildrole
+                - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-pipelinerole
+            Action:
+              - kms:*
+            Resource: "*"
+  
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    DependsOn:
+      - KMSKey
+    Properties:
+      AliasName:
+        Fn::Sub: alias/${CommonName}-codepipeline-kms
+      TargetKeyId: 
+        Ref: KMSKey
+
+  CodePipelineArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${CommonName}-pipeline-artifact
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${CommonName}-codebuildrole
+      Description:
+        Ref: CodeBuildRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-codebuildrolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${PublishServiceRepoName}-project
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${PublishServiceRepoName}-project:*
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${LocationServiceRepoName}-project
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${LocationServiceRepoName}-project:*
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${SKUAttributesServiceRepoName}-project
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${SKUAttributesServiceRepoName}-project:*
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${SKUConfigServiceRepoName}-project
+              - Fn::Sub: arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:log-group-${SKUConfigServiceRepoName}-project:*
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Fn::GetAtt: [KMSKey, Arn]
+          - Effect: Allow
+            Action: 
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact/*
+          - Effect: Allow
+            Action: 
+              - codecommit:GitPull
+            Resource:
+              - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${PublishServiceRepoName}
+              - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${LocationServiceRepoName}
+              - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SKUAttributesServiceRepoName}
+              - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${SKUConfigServiceRepoName}
+          - Effect: Allow
+            Action: 
+              - codebuild:CreateReportGroup
+              - codebuild:CreateReport
+              - codebuild:UpdateReport
+              - codebuild:BatchPutTestCases
+              - codebuild:BatchPutCodeCoverages
+            Resource:
+              - Fn::Sub: arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${PublishServiceRepoName}-project-*
+              - Fn::Sub: arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${LocationServiceRepoName}-project-*
+              - Fn::Sub: arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${SKUAttributesServiceRepoName}-project-*
+              - Fn::Sub: arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${SKUConfigServiceRepoName}-project-*
+          - Effect: Allow
+            Action: 
+              - ecr:*
+            Resource:
+              - "*"
+      Roles:
+        -
+          Ref: CodeBuildRole
+
+  PipeLineRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${CommonName}-pipelinerole
+      Description:
+        Ref: PipeLineRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codepipeline.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  PipeLineRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-pipelinerolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - codepipeline:*
+              - iam:ListRoles
+              - iam:PassRole
+              - cloudformation:*
+              - codecommit:List*
+              - codecommit:Get*
+              - codecommit:GitPull
+              - codecommit:UploadArchive
+              - codecommit:CancelUploadArchive
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - s3:ListAllMyBuckets
+              - s3:GetBucketLocation
+              - sns:*
+              - cloudwatch:*
+              - lambda:*
+              - ecs:*
+              - codedeploy:*
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Fn::GetAtt: [KMSKey, Arn]
+          - Effect: Allow
+            Action: 
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact/*
+          - Effect: Allow
+            Action: 
+              - sts:AssumeRole
+            Resource:
+              - Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+              - Fn::Sub: arn:aws:iam::${UATAccountNumber}:role/${CommonName}-pipelinecfnRole
+      Roles:
+        -
+          Ref: PipeLineRole
+
+  CodePipelineS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      DependsOn: 
+        - CodeBuildRole
+        - PipeLineRole
+      Properties:
+        Bucket: 
+          Fn::Sub: ${CommonName}-pipeline-artifact
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:*
+              Principal:
+                AWS:
+                  - Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                  - Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+                  - Fn::Sub: arn:aws:iam::${UATAccountNumber}:role/${CommonName}-cfndeployerrole
+                  - Fn::Sub: arn:aws:iam::${UATAccountNumber}:role/${CommonName}-pipelinecfnRole
+                  - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-codebuildrole
+                  - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-pipelinerole
+              Resource:
+                - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact
+                - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact/*
+
+  CloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${CommonName}-cwerole
+      Description:
+        Ref: CloudWatchEventRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudWatchEventRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-cwepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - codepipeline:StartPipelineExecution
+            Resource:
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${PublishServiceRepoName}-pipeline
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${LocationServiceRepoName}-pipeline
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${SKUAttributesServiceRepoName}-pipeline
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${SKUConfigServiceRepoName}-pipeline
+      Roles:
+        -
+          Ref: CloudWatchEventRole
+
+Outputs:
+  KMSKeyARN:
+    Description: "The ARN of the customer managed key"
+    Value:
+      Fn::GetAtt: [KMSKey, Arn]
+
+  CodePipelineArtifactS3BucketARN:
+    Description: "The ARN of the S3 bucket that holds the codepipeline artifacts"
+    Value:
+      Fn::GetAtt: [CodePipelineArtifactBucket, Arn]
+
+  CodeBuildRoleARN:
+    Description: "The ARN of the codebuild role"
+    Value:
+      Fn::GetAtt: [CodeBuildRole, Arn]
+
+  CodePipelineRoleARN:
+    Description: "The ARN of the codepipeline role"
+    Value:
+      Fn::GetAtt: [PipeLineRole, Arn]
+
+  CloudWatchEventRoleARN:
+    Description: "The ARN of the cloudwatch event"
+    Value:
+      Fn::GetAtt: [CloudWatchEventRole, Arn]

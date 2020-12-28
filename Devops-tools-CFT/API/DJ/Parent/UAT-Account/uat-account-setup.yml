@@ -1,0 +1,363 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template creates the S3 buckets, Bucket policies, IAM roles for cloudformation,
+              codepipeline assume"
+
+Parameters:
+  CommonName:
+    Description: "The name of the repository to be given"
+    Type: String
+  SharedServicesAccountNumber:
+    Description: "The Account number of the shared services account"
+    Type: String
+  CloudFormationDeployRoleDescription:
+    Description: "The role description needs to be given for the cloudformation role"
+    Type: String
+  CodePipelineCFNDeployRoleDescription:
+    Description: "The role description needs to be given for the codepipeline role"
+    Type: String
+  CMKARN:
+    Description: ARN of the KMS CMK creates in shared services account
+    Type: String
+  ECSServiceRoleDescription:
+    Description: "The role description that needs to be given for the ECS service"
+    Type: String
+  ECSTaskExecutionRoleDescription:
+    Description: "The role description that needs to be given for the ecs tasks"
+    Type: String
+  ECSAutoScalingRoleDescription:
+    Description: "The role description that needs to be given for ECS tasks autoscaling"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  CloudFormationDeployRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${CommonName}-cfndeployerrole
+      Description:
+        Ref: CloudFormationDeployRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudFormationDeployRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-cfndeployerrolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:Get*
+              - iam:List*
+              - iam:*Role*
+              - iam:CreatePolicy
+              - iam:DeletePolicy
+              - iam:*PolicyVersion*
+              - iam:*InstanceProfile*
+              - cloudformation:*
+              - logs:*
+              - s3:*
+              - ecs:*
+              - ecr:*
+              - rds:*
+              - elasticloadbalancing:*
+              - ec2:*
+              - autoscaling:*
+              - application-autoscaling:*
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact
+              - Fn::Sub: arn:aws:s3:::${CommonName}-pipeline-artifact/*
+      Roles:
+        -
+          Ref: CloudFormationDeployRole
+
+  CodePipelineCFNDeployRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${CommonName}-pipelinecfnRole
+      Description:
+        Ref: CodePipelineCFNDeployRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            AWS:
+              - Fn::Sub: arn:aws:iam::${SharedServicesAccountNumber}:root
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodePipelineCFNDeployRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-pipelinecfnrolePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - cloudformation:*
+              - ecs:*
+              - s3:*
+              - iam:PassRole
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+      Roles:
+        -
+          Ref: CodePipelineCFNDeployRole
+
+  ECSServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${CommonName}-ecsservicerole
+      Description:
+        Ref: ECSServiceRoleDescription
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: ecs.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  ECSServiceRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${CommonName}-ecsservicerolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - ec2:AttachNetworkInterface
+              - ec2:CreateNetworkInterface
+              - ec2:CreateNetworkInterfacePermission
+              - ec2:DeleteNetworkInterface
+              - ec2:DeleteNetworkInterfacePermission
+              - ec2:Describe*
+              - ec2:DetachNetworkInterface
+              - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
+              - elasticloadbalancing:DeregisterTargets
+              - elasticloadbalancing:Describe*
+              - elasticloadbalancing:RegisterInstancesWithLoadBalancer
+              - elasticloadbalancing:RegisterTargets
+              - iam:PassRole
+            Resource:
+              - "*"
+      Roles:
+        -
+          Ref: ECSServiceRole
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${CommonName}-ecstaskexecrole
+      Description:
+        Ref: ECSTaskExecutionRoleDescription
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${CommonName}-autoscalingrole
+      Description:
+        Ref: ECSAutoScalingRoleDescription
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+Outputs:
+  CloudFormationRoleARN:
+    Description: "The ARN of the cloudformation role"
+    Value:
+      Fn::GetAtt: [CloudFormationDeployRole, Arn]
+
+  CodepipelineAssumeRoleARN:
+    Description: "The ARN of the codepipeline role to be assumed"
+    Value:
+      Fn::GetAtt: [CodePipelineCFNDeployRole, Arn]
+
+  ECSServiceRole:
+    Description: "The ARN of the ECS service role"
+    Value:
+      Fn::GetAtt: [ECSServiceRole, Arn]
+    Export:
+      Name: ECSServiceRoleArn
+
+  ECSTaskExecutionRole:
+    Description: "The ARN of the ecs tasks role where the ecs tasks will assume"
+    Value:
+      Fn::GetAtt: [ECSTaskExecutionRole, Arn]
+    Export:
+      Name: ECSTaskExecutionRoleArn
+
+  AutoScalingRole:
+    Description: "The ARN of the ecs autoscaling role"
+    Value:
+      Fn::GetAtt: [AutoScalingRole, Arn]
+    Export:
+      Name: AutoScalingRoleArn

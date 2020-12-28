@@ -1,0 +1,74 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-location-service-dj"
+    },
+    {
+        "ParameterKey": "CommonName",
+        "ParameterValue": "inventory-availability-publish-api-dj"
+    },
+    {
+        "ParameterKey": "ProjectDescription",
+        "ParameterValue": "The Project that builds docker image for the location service"
+    },
+    {
+        "ParameterKey": "DevAccountNumber",
+        "ParameterValue": "158705798707"
+    },
+    {
+        "ParameterKey": "UATAccountNumber",
+        "ParameterValue": "210390883574"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": "arn:aws:kms:ap-southeast-2:063668765682:key/16c33815-b226-4aa5-a8b0-74212e4a0d5e"
+    },
+    {
+        "ParameterKey": "CodeBuildNotificationEmail",
+        "ParameterValue": "sagar.dange@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "DevApprovalEmail",
+        "ParameterValue": "sagar.dange@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "UATApprovalEmail",
+        "ParameterValue": "sagar.dange@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "ServiceName",
+        "ParameterValue": "location-service"
+    },
+    {
+        "ParameterKey": "CloudWatchEventDescription",
+        "ParameterValue": "The CloudWatch event that triggers the pyspark pipeline when the source code repo gets a change"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

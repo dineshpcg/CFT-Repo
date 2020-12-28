@@ -1,0 +1,46 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-compute-app-dj"
+    },
+    {
+        "ParameterKey": "CodeBuildRoleDescription",
+        "ParameterValue": "The role for codebuild that has necessary permissions to build the pyspark project"
+    },
+    {
+        "ParameterKey": "PipeLineRoleDescription",
+        "ParameterValue": "The role for codepipeline that has necessary permissions to run different pipeline stages"
+    },
+    {
+        "ParameterKey": "ProdAccountNumber",
+        "ParameterValue": "646946142517"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

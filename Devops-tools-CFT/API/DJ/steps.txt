@@ -1,0 +1,162 @@
+Please run the below stacks in the same order
+
+===================
+Creation of Stacks
+===================
+
+1.) Run the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note : Comment the KMS & S3 section in "cfndeployerrolepolicy" and KMS section in 
+"pipelinecfnrolePolicy"
+
+The commented section parts will be created as part of step-3
+
+aws cloudformation create-stack --stack-name inventory-availability-api-service-dj-dev-setup \
+--template-body file://API/DJ/Parent/Dev-Account/dev-account-setup.yml \
+--parameters file://API/DJ/Parent/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+2.) Run the cloudformation stack with "uat-account-setup.yml" in the compute uat account 
+using the below CLI command
+
+Note : Comment the KMS & S3 section in "cfndeployerrolepolicy" and KMS section in 
+"pipelinecfnrolePolicy"
+
+The commented section parts will be created as part of step-3
+
+aws cloudformation create-stack --stack-name inventory-availability-api-service-dj-uat-setup \
+--template-body file://API/DJ/Parent/UAT-Account/uat-account-setup.yml \
+--parameters file://API/DJ/Parent/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+3.) Run the cloudformation stack with "shared-services-account-setup.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-api-service-dj-setup \
+--template-body file://API/DJ/Parent/shared-services-setup.yml \
+--parameters file://API/DJ/Parent/shared-services-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+4.) Update the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note: Un-Comment the KMS & S3 section in "cfndeployerrolepolicy" and KMS section in 
+"pipelinecfnrolePolicy"
+
+Add the ARN of the KMS key that was created in the step-3
+
+aws cloudformation update-stack --stack-name inventory-availability-api-service-dj-dev-setup \
+--template-body file://API/DJ/Parent/Dev-Account/dev-account-setup.yml \
+--parameters file://API/DJ/Parent/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+5.) Update the cloudformation stack with "uat-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note: Un-Comment the KMS & S3 section in "cfndeployerrolepolicy" and KMS section in 
+"pipelinecfnrolePolicy"
+
+Add the ARN of the KMS key that was created in the step-3
+
+aws cloudformation update-stack --stack-name inventory-availability-api-service-dj-uat-setup \
+--template-body file://API/DJ/Parent/UAT-Account/uat-account-setup.yml \
+--parameters file://API/DJ/Parent/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+6.) Run the cloudformation stack with "api-platform-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-api-platform-dj-pipeline \
+--template-body file://API/DJ/Parent/api-platform-pipeline.yml \
+--parameters file://API/DJ/Parent/api-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+7.) Run the cloudformation stack with "app-platform-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-publish-api-service-dj-pipeline \
+--template-body file://API/DJ/Publish-API-Service/DJ-Dev&QA/app-platform-pipeline.yml \
+--parameters file://API/DJ/Publish-API-Service/DJ-Dev&QA/app-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+8.) Run the cloudformation stack with "app-platform-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-location-service-dj-pipeline \
+--template-body file://API/DJ/Location-Service/DJ-Dev&QA/app-platform-pipeline.yml \
+--parameters file://API/DJ/Location-Service/DJ-Dev&QA/app-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+9.) Run the cloudformation stack with "app-platform-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-sku-attributes-service-dj-pipeline \
+--template-body file://API/DJ/SKU-Attributes-Service/DJ-Dev&QA/app-platform-pipeline.yml \
+--parameters file://API/DJ/SKU-Attributes-Service/DJ-Dev&QA/app-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+10.) Run the cloudformation stack with "app-platform-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-sku-config-service-dj-pipeline \
+--template-body file://API/DJ/SKU-Config-Service/DJ-Dev&QA/app-platform-pipeline.yml \
+--parameters file://API/DJ/SKU-Config-Service/DJ-Dev&QA/app-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+
+===================
+Deletion of Stacks
+===================
+
+aws cloudformation delete-stack --stack-name inventory-availability-api-service-dj-dev-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-api-service-dj-uat-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-api-service-dj-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-api-platform-dj-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-publish-api-service-dj-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-location-service-dj-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-sku-attributes-service-dj-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-sku-config-service-dj-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>

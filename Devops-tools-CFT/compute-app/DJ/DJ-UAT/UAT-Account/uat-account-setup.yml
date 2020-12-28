@@ -1,0 +1,402 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template creates the S3 buckets, Bucket policies, IAM roles for cloudformation,
+              codepipeline assume, glue and step functions"
+
+Parameters:
+  RepoName:
+    Description: "The name of the repository to be given"
+    Type: String
+  SharedServicesAccountNumber:
+    Description: "The Account number of the shared services account"
+    Type: String
+  CloudFormationDeployRoleDescription:
+    Description: "The role description needs to be given for the cloudformation role"
+    Type: String
+  CodePipelineCFNDeployRoleDescription:
+    Description: "The role description needs to be given for the codepipeline role"
+    Type: String
+  CMKARN:
+    Description: ARN of the KMS CMK creates in Tools account
+    Type: String
+  GlueJobRoleDescription:
+    Description: "The description needs to be given for the glue job role"
+    Type: String
+  StateMachineRoleDescription:
+    Description: "The description needs to be given for the state machines role"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  GlueS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${RepoName}-glue-artifact-uat
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  GlueS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - GlueS3Bucket
+      - GlueJobRole
+    Properties:
+      Bucket: 
+        Fn::Sub: ${RepoName}-glue-artifact-uat
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat/*
+            Principal:
+              AWS:
+                - Fn::Sub: arn:aws:iam::${SharedServicesAccountNumber}:role/${RepoName}-uat-codebuildrole
+                - Fn::Sub: arn:aws:iam::${SharedServicesAccountNumber}:role/${RepoName}-uat-pipelinerole
+                - Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+
+  CloudFormationDeployRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-cfndeployerrole
+      Description:
+        Ref: CloudFormationDeployRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudFormationDeployRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RepoName}-cfndeployerrolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - iam:Get*
+              - iam:List*
+              - iam:*Role*
+              - iam:CreatePolicy
+              - iam:DeletePolicy
+              - iam:*PolicyVersion*
+              - iam:*InstanceProfile*
+              - cloudformation:*
+              - s3:*
+              - glue:*
+              - cloudwatch:*
+              - lambda:*
+              - apigateway:*
+              - kinesis:*
+              - kinesisanalytics:*
+              - firehose:*
+              - states:*
+              - sns:*
+              - events:*
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${RepoName}-uat-pipeline-artifact
+              - Fn::Sub: arn:aws:s3:::${RepoName}-uat-pipeline-artifact/*
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat/*
+      Roles:
+        -
+          Ref: CloudFormationDeployRole
+
+  CodePipelineCFNDeployRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-pipelinecfnRole
+      Description:
+        Ref: CodePipelineCFNDeployRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            AWS:
+              - Fn::Sub: arn:aws:iam::${SharedServicesAccountNumber}:root
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodePipelineCFNDeployRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RepoName}-pipelinecfnrolePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - cloudformation:*
+              - s3:*
+              - iam:PassRole
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+      Roles:
+        -
+          Ref: CodePipelineCFNDeployRole
+
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-gluejobsrole
+      Description:
+        Ref: GlueJobRoleDescription
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: glue.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  GlueJobRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RepoName}-gluejobsrolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:*
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat
+              - Fn::Sub: arn:aws:s3:::${RepoName}-glue-artifact-uat/*
+              - Fn::Sub: arn:aws:s3:::${RepoName}-uat-pipeline-artifact
+              - Fn::Sub: arn:aws:s3:::${RepoName}-uat-pipeline-artifact/*
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+          - Effect: Allow
+            Action: 
+              - logs:*
+            Resource:
+              - "*"
+      Roles:
+        -
+          Ref: GlueJobRole
+
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-statemachinerole
+      Description:
+        Ref: StateMachineRoleDescription
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: states.amazonaws.com
+          Action: sts:AssumeRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  StateMachineRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RepoName}-statemachinerolepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:*
+              - xray:*
+              - states:*
+              - sns:*
+              - logs:*
+              - glue:*
+            Resource:
+              - "*"
+          - Effect: Allow
+            Action: 
+              - kms:*
+            Resource:
+              - Ref: CMKARN
+      Roles:
+        -
+          Ref: StateMachineRole
+
+Outputs:
+  GlueArtifactS3BucketARN:
+    Description: "The ARN of the S3 bucket that holds the glue jobs"
+    Value:
+      Fn::GetAtt: [GlueS3Bucket, Arn]
+
+  CloudFormationRoleARN:
+    Description: "The ARN of the cloudformation role"
+    Value:
+      Fn::GetAtt: [CloudFormationDeployRole, Arn]
+
+  CodepipelineAssumeRoleARN:
+    Description: "The ARN of the codepipeline role to be assumed"
+    Value:
+      Fn::GetAtt: [CodePipelineCFNDeployRole, Arn]
+
+  GlueJobRoleARN:
+    Description: "The ARN of the glue jobs role"
+    Value:
+      Fn::GetAtt: [GlueJobRole, Arn]
+
+  StateMachineRoleARN:
+    Description: "The ARN of the state machine role"
+    Value:
+      Fn::GetAtt: [StateMachineRole, Arn]

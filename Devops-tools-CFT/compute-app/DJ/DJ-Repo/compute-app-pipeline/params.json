@@ -1,0 +1,38 @@
+[
+    {
+        "ParameterKey": "RepositoryDescription",
+        "ParameterValue": "This repository is for managing the cicd cloudformation templates related to inventory availability resource creation" 
+    },
+    {
+        "ParameterKey": "RepositoryName",
+        "ParameterValue": "inventory-availability-compute-app-pipeline-cft-repo"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }   
+]

@@ -1,0 +1,62 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-compute-app-crg"
+    },
+    {
+        "ParameterKey": "SharedServicesAccountNumber",
+        "ParameterValue": "063668765682"
+    },
+    {
+        "ParameterKey": "CloudFormationDeployRoleDescription",
+        "ParameterValue": "The role that has necessary permission to create the glue env via cloudformation"
+    },
+    {
+        "ParameterKey": "CodePipelineCFNDeployRoleDescription",
+        "ParameterValue": "The role that has necessary permission for codepipeline to create resources via cloudformation"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": "arn:aws:kms:ap-southeast-2:063668765682:key/c29939b2-664b-4550-a42f-0c6cc631f077"
+    },
+    {
+        "ParameterKey": "GlueJobRoleDescription",
+        "ParameterValue": "The role that has necessary permissions for glue jobs to run successfully"
+    },
+    {
+        "ParameterKey": "StateMachineRoleDescription",
+        "ParameterValue": "The role that has necessary permissions for state machines to run successfully"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "CRG"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceEnvironment",
+        "ParameterValue": "UAT"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "Country Road Hroup"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

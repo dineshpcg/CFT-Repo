@@ -1,0 +1,73 @@
+Please run the below stacks in the same order
+
+===================
+Creation of Stacks
+===================
+
+1.) Run the cloudformation stack with "prod-account-setup.yml" in the compute prod account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-2
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/Prod-Account/prod-account-setup.yml \
+--parameters file://DJ/DJ-Prod/Prod-Account/prod-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+2.) Run the cloudformation stack with "shared-services-account-setup.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/shared-services-prod-setup.yml \
+--parameters file://DJ/DJ-Prod/shared-services-prod-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+3.) Update the cloudformation stack with "prod-account-setup.yml" in the compute prod account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-2
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/Prod-Account/prod-account-setup.yml \
+--parameters file://DJ/DJ-Prod/Prod-Account/prod-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+4.) Run the cloudformation stack with "app-platform-pipeline-prod.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-pipeline \
+--template-body file://DJ/DJ-Prod/app-platform-pipeline-prod.yml \
+--parameters file://DJ/DJ-Prod/app-platform-pipeline-prod-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+
+
+===================
+Deletion of Stacks
+===================
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>

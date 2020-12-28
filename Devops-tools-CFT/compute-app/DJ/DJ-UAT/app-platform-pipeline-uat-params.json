@@ -1,0 +1,62 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-compute-app-dj"
+    },
+    {
+        "ParameterKey": "ProjectDescription",
+        "ParameterValue": "The Project that builds the pyspark code"
+    },
+    {
+        "ParameterKey": "UATAccountNumber",
+        "ParameterValue": "210390883574"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": "arn:aws:kms:ap-southeast-2:063668765682:key/12d04311-13e9-4223-a361-dfbaf6df357b"
+    },
+    {
+        "ParameterKey": "CodeBuildNotificationEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "UATApprovalEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "CloudWatchEventRoleDescription",
+        "ParameterValue": "The role for cloudwatch event that has necessary permissions to trigger the pyspark pipeline"
+    },
+    {
+        "ParameterKey": "CloudWatchEventDescription",
+        "ParameterValue": "The CloudWatch event that triggers the pyspark pipeline when the source code repo gets a change"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "DJ"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "David Jones"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

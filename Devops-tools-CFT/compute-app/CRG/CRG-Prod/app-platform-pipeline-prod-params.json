@@ -1,0 +1,62 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-compute-app-crg"
+    },
+    {
+        "ParameterKey": "ProjectDescription",
+        "ParameterValue": "The Project that builds the pyspark code"
+    },
+    {
+        "ParameterKey": "ProdAccountNumber",
+        "ParameterValue": "646946142517"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "CodeBuildNotificationEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "ProdApprovalEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "CloudWatchEventRoleDescription",
+        "ParameterValue": "The role for cloudwatch event that has necessary permissions to trigger the pyspark pipeline"
+    },
+    {
+        "ParameterKey": "CloudWatchEventDescription",
+        "ParameterValue": "The CloudWatch event that triggers the pyspark pipeline when the source code repo gets a change"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "CRG"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "Country Road Group"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

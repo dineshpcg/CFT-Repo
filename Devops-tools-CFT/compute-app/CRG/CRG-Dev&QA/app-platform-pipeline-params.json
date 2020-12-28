@@ -1,0 +1,70 @@
+[
+    {
+        "ParameterKey": "RepoName",
+        "ParameterValue": "inventory-availability-compute-app-crg"
+    },
+    {
+        "ParameterKey": "ProjectDescription",
+        "ParameterValue": "The Project that builds the pyspark code"
+    },
+    {
+        "ParameterKey": "DevAccountNumber",
+        "ParameterValue": "158705798707"
+    },
+    {
+        "ParameterKey": "UATAccountNumber",
+        "ParameterValue": "210390883574"
+    },
+    {
+        "ParameterKey": "CMKARN",
+        "ParameterValue": "arn:aws:kms:ap-southeast-2:063668765682:key/c29939b2-664b-4550-a42f-0c6cc631f077"
+    },
+    {
+        "ParameterKey": "CodeBuildNotificationEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "DevApprovalEmail",
+        "ParameterValue": "delna.john@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "UATApprovalEmail",
+        "ParameterValue": "siva.kumar@davidjones.com.au"
+    },
+    {
+        "ParameterKey": "CloudWatchEventRoleDescription",
+        "ParameterValue": "The role for cloudwatch event that has necessary permissions to trigger the pyspark pipeline"
+    },
+    {
+        "ParameterKey": "CloudWatchEventDescription",
+        "ParameterValue": "The CloudWatch event that triggers the pyspark pipeline when the source code repo gets a change"
+    },
+    {
+        "ParameterKey": "GovernanceCompany",
+        "ParameterValue": "CRG"
+    },
+    {
+        "ParameterKey": "GovernanceDepartment",
+        "ParameterValue": "IT Service"
+    },
+    {
+        "ParameterKey": "GovernanceApplication",
+        "ParameterValue": "Inventory"
+    },
+    {
+        "ParameterKey": "GovernanceLayer",
+        "ParameterValue": "DaaSCompute"
+    },
+    {
+        "ParameterKey": "GovernanceBrand",
+        "ParameterValue": "Country Road Group"
+    },
+    {
+        "ParameterKey": "GovernanceApprover",
+        "ParameterValue": "Kadiresan"
+    },
+    {
+        "ParameterKey": "GovernanceProject",
+        "ParameterValue": "Connected Retail"
+    }
+]

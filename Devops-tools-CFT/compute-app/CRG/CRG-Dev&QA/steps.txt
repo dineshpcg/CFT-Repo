@@ -1,0 +1,103 @@
+Please run the below stacks in the same order
+
+===================
+Creation of Stacks
+===================
+
+1.) Run the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-2
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-crg-dev-setup \
+--template-body file://CRG/CRG-Dev&QA/Dev-Account/dev-account-setup.yml \
+--parameters file://CRG/CRG-Dev&QA/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+2.) Run the cloudformation stack with "uat-account-setup.yml" in the compute uat account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-3
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-crg-uat-setup \
+--template-body file://CRG/CRG-Dev&QA/UAT-Account/uat-account-setup.yml \
+--parameters file://CRG/CRG-Dev&QA/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+3.) Run the cloudformation stack with "shared-services-account-setup.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-crg-setup \
+--template-body file://CRG/CRG-Dev&QA/Dev-Account/dev-account-setup.yml \
+--parameters file://CRG/CRG-Dev&QA/shared-services-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+4.) Update the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-2
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-crg-dev-setup \
+--template-body file://CRG/CRG-Dev&QA/Dev-Account/dev-account-setup.yml \
+--parameters file://CRG/CRG-Dev&QA/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+5.) Update the cloudformation stack with "uat-account-setup.yml" in the compute uat account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-2
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-crg-dev-setup \
+--template-body file://CRG/CRG-Dev&QA/UAT-Account/uat-account-setup.yml \
+--parameters file://CRG/CRG-Dev&QA/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+6.) Run the cloudformation stack with "shared-services-account-pipeline.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-crg-pipeline \
+--template-body file://CRG/CRG-Dev&QA/app-platform-pipeline.yml \
+--parameters file://CRG/CRG-Dev&QA/app-platform-pipeline-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+
+
+===================
+Deletion of Stacks
+===================
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-crg-dev-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-crg-setup \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-crg-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>

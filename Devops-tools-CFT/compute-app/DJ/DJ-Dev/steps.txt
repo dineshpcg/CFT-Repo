@@ -1,0 +1,196 @@
+Please run the below stacks in the same order
+
+===================
+Creation of Stacks
+===================
+
+1.) Run the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-4
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-dev-setup \
+--template-body file://DJ/DJ-Dev/Dev-Account/dev-account-setup.yml \
+--parameters file://DJ/DJ-Dev/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+2.) Run the cloudformation stack with "uat-account-setup.yml" in the compute uat account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-5
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-uat-setup \
+--template-body file://DJ/DJ-UAT/UAT-Account/uat-account-setup.yml \
+--parameters file://DJ/DJ-UAT/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+3.) Run the cloudformation stack with "prod-account-setup.yml" in the compute prod account 
+using the below CLI command
+
+Note : Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+The commented section parts will be created as part of step-6
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/Prod-Account/prod-account-setup.yml \
+--parameters file://DJ/DJ-Prod/Prod-Account/prod-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+4.) Run the cloudformation stack with "shared-services-setup-dev.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-dev-setup \
+--template-body file://DJ/DJ-Dev/shared-services-setup-dev.yml \
+--parameters file://DJ/DJ-Dev/shared-services-setup-dev-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+5.) Run the cloudformation stack with "shared-services-setup-uat.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-uat-setup \
+--template-body file://DJ/DJ-UAT/shared-services-setup-uat.yml \
+--parameters file://DJ/DJ-UAT/shared-services-setup-uat-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+6.) Run the cloudformation stack with "shared-services-setup-prod.yml" in the shared services 
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/shared-services-setup-prod.yml \
+--parameters file://DJ/DJ-Prod/shared-services-setup-prod-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+7.) Update the cloudformation stack with "dev-account-setup.yml" in the compute dev account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-4
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-dj-dev-setup \
+--template-body file://DJ/DJ-Dev/Dev-Account/dev-account-setup.yml \
+--parameters file://DJ/DJ-Dev/Dev-Account/dev-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+8.) Update the cloudformation stack with "uat-account-setup.yml" in the compute uat account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-5
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-dj-uat-setup \
+--template-body file://DJ/DJ-UAT/UAT-Account/uat-account-setup.yml \
+--parameters file://DJ/DJ-UAT/UAT-Account/uat-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+9.) Update the cloudformation stack with "prod-account-setup.yml" in the compute prod account 
+using the below CLI command
+
+Note: Un-Comment the Bucket policy section, KMS & S3 section in "cfndeployerrolepolicy", 
+KMS section in "pipelinecfnrolePolicy", KMS & S3 section in gluerolepolicy and statemachinerolepolicy
+
+Add the ARN of the KMS key that was created in the step-6
+
+aws cloudformation update-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--template-body file://DJ/DJ-Prod/Prod-Account/prod-account-setup.yml \
+--parameters file://DJ/DJ-Prod/Prod-Account/prod-account-setup-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+10.) Run the cloudformation stack with "app-platform-pipeline-dev.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-dev-pipeline \
+--template-body file://DJ/DJ-Dev/app-platform-pipeline-dev.yml \
+--parameters file://DJ/DJ-Dev/app-platform-pipeline-dev-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+11.) Run the cloudformation stack with "app-platform-pipeline-uat.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-uat-pipeline \
+--template-body file://DJ/DJ-UAT/app-platform-pipeline-uat.yml \
+--parameters file://DJ/DJ-UAT/app-platform-pipeline-uat-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+12.) Run the cloudformation stack with "app-platform-pipeline-prod.yml" in the shared services
+account using the below CLI command
+
+aws cloudformation create-stack --stack-name inventory-availability-compute-app-dj-prod-pipeline \
+--template-body file://DJ/DJ-Prod/app-platform-pipeline-prod.yml \
+--parameters file://DJ/DJ-Prod/app-platform-pipeline-prod-params.json \
+--capabilities CAPABILITY_NAMED_IAM \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+
+===================
+Deletion of Stacks
+===================
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-dev-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in compute-dev account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-uat-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in compute-uat account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in compute-prod account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-dev-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in shared-services account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-uat-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in shared-services account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-setup \
+--region ap-southeast-2 \
+--profile <profile-name>   ======> in shared-services account
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-dev-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-uat-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>
+
+aws cloudformation delete-stack --stack-name inventory-availability-compute-app-dj-prod-pipeline \
+--region ap-southeast-2 \
+--profile <profile-name>

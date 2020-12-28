@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template provisions the CodeCommit Repository"
+
+Parameters:
+  RepositoryDescription:
+    Description: "The Description needs to be given for the code commit repository"
+    Type: String
+  RepositoryName:
+    Description: "The name of the code commit repository"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  Codecommitrepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryDescription: 
+        Ref: RepositoryDescription
+      RepositoryName: 
+        Ref: RepositoryName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:Project'
+          Value: GovernanceProject
+
+Outputs:
+  RepoName:
+    Description: "This is the repository Name"
+    Value:
+      Fn::GetAtt: [Codecommitrepository, Name]        

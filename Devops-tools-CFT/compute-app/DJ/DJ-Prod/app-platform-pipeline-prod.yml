@@ -1,0 +1,610 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template provisions the codebuild, codepipeline and SNS approval topics for Prod"
+
+Parameters:
+  RepoName:
+    Description: "The name of the code commit repository"
+    Type: String
+  ProjectDescription:
+    Description: "The description needs to be given for the code build project"
+    Type: String
+  ProdAccountNumber:
+    Description: "The account number for the compute Dev"
+    Type: Number
+  CMKARN:
+    Description: "ARN of the KMS CMK creates in Tools account"
+    Type: String
+  CodeBuildNotificationEmail:
+    Description: "The list of ID's to which the notification needs to be sent when codebuild fails"
+    Type: String
+  ProdApprovalEmail:
+    Description: "The list of approvers for deploying the CFN to Prod env"
+    Type: String
+  ProdBranchName:
+    Description: "The branch name to be given for the Dev deployment"
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /inventory-avail/compute-app-dj/prod-branch
+  CloudWatchEventRoleDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  CloudWatchEventDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: 
+       Fn::Sub: ${RepoName}-prod-project
+      Description: 
+        Ref: ProjectDescription
+      EncryptionKey:
+        Ref: CMKARN
+      Source:
+        Type: CODEPIPELINE
+        GitCloneDepth: 1
+        BuildSpec: prod-buildspec.yml
+      Environment: 
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: CODEPIPELINE_BUCKET
+            Type: PLAINTEXT
+            Value:
+              Fn::Sub: ${RepoName}-prod-pipeline-artifact
+          - Name: GLUE_S3_BUCKET
+            Type: PLAINTEXT
+            Value:
+              Fn::Join:
+                - ""
+                - - "s3://"
+                  - Fn::Sub: ${RepoName}-glue-artifact-prod
+          - Name: CMKARN
+            Type: PLAINTEXT
+            Value:
+              Ref: CMKARN
+      ServiceRole:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-prod-codebuildrole
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache: 
+        Type: NO_CACHE
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName:
+            Fn::Join:
+              - '-'
+              - - "log-group"
+                - Fn::Sub: ${RepoName}-prod-project
+          Status: ENABLED
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-prod-cb-notification
+      DisplayName: Notification topic for prod codebuild state changes
+      Subscription:
+        - Endpoint:
+            Ref: CodeBuildNotificationEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildNotificationConfig:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    DependsOn:
+      - CodeBuildProject
+      - CodeBuildNotificationTopic
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - codebuild-project-build-state-failed
+        - codebuild-project-build-state-stopped
+      Name:
+        Fn::Sub: ${RepoName}-prod-prject-notification
+      Resource:
+        Fn::GetAtt: [CodeBuildProject, Arn]
+      Status: ENABLED
+      Targets:
+        - TargetType: SNS
+          TargetAddress:
+            Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${RepoName}-prod-cb-notification
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ProdDeployApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-proddeploy
+      DisplayName: Prod Deploy CFN approval topic
+      Subscription:
+        - Endpoint:
+            Ref: ProdApprovalEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  Codepipeline:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn:
+      - ProdDeployApprovalTopic
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-prod-pipeline
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-prod-pipelinerole
+      ArtifactStore:
+        Type: S3
+        Location:
+          Fn::Sub: ${RepoName}-prod-pipeline-artifact
+        EncryptionKey:
+          Id:
+            Ref: CMKARN
+          Type: KMS
+      Stages:
+        - Name: Source
+          Actions: 
+            - Name: Code
+              ActionTypeId:
+                Category: Source 
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName:
+                  Ref: RepoName
+                BranchName: 
+                  Ref: ProdBranchName
+                PollForSourceChanges: False
+              OutputArtifacts:
+                - Name: CCArtifact
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName:
+                  Fn::Sub: ${RepoName}-prod-project
+              InputArtifacts:
+                - Name: CCArtifact
+              OutputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 2
+        - Name: DeployToProd
+          Actions: 
+            - Name: CreateChangeSetProdLambda
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-lambda
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-lambda
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::samtemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/lambda/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: ProdDeployCFNApprovalLambda
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: ProdDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetProdLambda
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-lambda
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-lambda
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::samtemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/lambda/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: CreateChangeSetProdGlue
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-glue
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-glue
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::gluetemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/glue/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalGlue
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: ProdDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetProdGlue
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-glue
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-glue
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::gluetemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/glue/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: CreateChangeSetProdKinesis
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-kinesis
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-kinesis
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::kinesistemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/kinesis/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: ProdDeployCFNApprovalKinesis
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: ProdDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetProdKinesis
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-kinesis
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-kinesis
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::kinesistemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/kinesis/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: CreateChangeSetProdStepFunction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-step-function
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-step-function
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::stepfunctiontemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/step-functions/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+            - Name: ProdDeployCFNApprovalStepFunction
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: ProdDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetProdStepFunction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-prod-step-function
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-prod-step-function
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-cfndeployerrole
+                TemplatePath: CBArtifact::stepfunctiontemplate.yml
+                TemplateConfiguration: CBArtifact::cfn/step-functions/params/template_prod.json
+              InputArtifacts:
+                - Name: CBArtifact
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${ProdAccountNumber}:role/${RepoName}-pipelinecfnRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-prod-cwerole
+      Description:
+        Ref: CloudWatchEventRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudWatchEventRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CloudWatchEventCustomPolicyProd
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - codepipeline:StartPipelineExecution
+            Resource:
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${RepoName}-prod-pipeline
+      Roles:
+        -
+          Ref: CloudWatchEventRole
+              
+  CodePipeLineCWEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-prod-pipeline-event
+      Description:
+        Ref: CloudWatchEventDescription
+      EventPattern:
+        source:
+        - aws.codecommit
+        detail-type:
+        - CodeCommit Repository State Change
+        resources:
+        - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepoName}
+        detail:
+          event:
+          - referenceCreated
+          - referenceUpdated
+          referenceType:
+          - branch
+          referenceName:
+          - Ref: ProdBranchName
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${RepoName}-prod-pipeline
+        RoleArn:
+          Fn::GetAtt: [CloudWatchEventRole, Arn]
+        Id:
+          Fn::Join:
+          - '-'
+          - - prod-codepipeline
+            - Ref: RepoName
+
+Outputs:
+  ProjectARN:
+    Description: "The ARN of the dev code build project"
+    Value:
+      Fn::GetAtt: [CodeBuildProject, Arn]
+
+  CodeBuildNotificationTopicName:
+    Description: "The topic name for the codebuild notifications"
+    Value:
+      Fn::GetAtt: [CodeBuildNotificationTopic, TopicName]
+
+  CodeBuildNotificationName:
+    Description: "The name of the codebuild notifications"
+    Value:
+      Ref: CodeBuildNotificationConfig
+
+  ProdDeployTopicName:
+    Description: "The topic name of Dev deployment of platform resources"
+    Value:
+      Fn::GetAtt: [ProdDeployApprovalTopic, TopicName]
+
+  PipelineVersionNumber:
+    Description: "The version number of the pipeline"
+    Value:
+      Fn::GetAtt: [Codepipeline, Version]
+
+  CloudWatchEventRoleARN:
+    Description: "The ARN of the cloudwatch event"
+    Value:
+      Fn::GetAtt: [CloudWatchEventRole, Arn]
+
+  CloudWatchEventRuleARN:
+    Description: "The ARN of the cloudwatch event that will trigger the pipeline"
+    Value:
+      Fn::GetAtt: [CodePipeLineCWEventRule, Arn]

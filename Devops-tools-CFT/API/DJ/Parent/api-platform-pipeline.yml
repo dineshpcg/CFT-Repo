@@ -1,0 +1,493 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template provisions the codebuild, codedeploy, codepipeline and SNS approval topics for Dev & QA"
+
+Parameters:
+  RepoName:
+    Description: "The name of the code commit repository"
+    Type: String
+  DevApprovalEmail:
+    Description: "The list of approvers for deploying the CFN to dev env"
+    Type: String
+  UATApprovalEmail:
+    Description: "The list of approvers for deploying the CFN to UAT env"
+    Type: String
+  CommonName:
+    Description: "the common name that needs to be given"
+    Type: String
+  CMKARN:
+    Description: "ARN of the KMS CMK creates in Tools account"
+    Type: String
+  DevAccountNumber:
+    Description: "The account number for the compute Dev"
+    Type: Number
+  UATAccountNumber:
+    Description: "The account number for the compute UAT"
+    Type: Number
+  CloudWatchEventRoleDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  CloudWatchEventDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  DevDeployApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-devdeploy
+      DisplayName: Dev Deploy CFN approval topic
+      Subscription:
+        - Endpoint:
+            Ref: DevApprovalEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  UATDeployApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-uatdeploy
+      DisplayName: UAT Deploy CFN approval topic
+      Subscription:
+        - Endpoint:
+            Ref: UATApprovalEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  Codepipeline:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn:
+      - DevDeployApprovalTopic
+      - UATDeployApprovalTopic
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-pipeline
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-pipelinerole
+      ArtifactStore:
+        Type: S3
+        Location:
+          Fn::Sub: ${CommonName}-pipeline-artifact
+        EncryptionKey:
+          Id:
+            Ref: CMKARN
+          Type: KMS
+      Stages:
+        - Name: Source
+          Actions: 
+            - Name: Code
+              ActionTypeId:
+                Category: Source 
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName:
+                  Ref: RepoName
+                BranchName: master
+                PollForSourceChanges: False
+              OutputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 1
+        - Name: PlatformSetupForDev
+          Actions: 
+            - Name: CreateChangeSetSG
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-sg
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-sg
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/SG/security-group.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/SG/params/security-group-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalSG
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: DevDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetSG
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-sg
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-sg
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/SG/security-group.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/SG/params/security-group-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: CreateChangeSetNLB
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-nlb
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-nlb
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/NLB/load-balancer.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/NLB/params/load-balancer-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 4
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalNLB
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: DevDeployApprovalTopic
+              RunOrder: 5
+            - Name: ExecuteChangeSetNLB
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-nlb
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-nlb
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/NLB/load-balancer.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/NLB/params/load-balancer-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 6
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: CreateChangeSetDB
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-db
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-db
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/PostgresDB/postgres-db.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/PostgresDB/params/postgres-db-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 7
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalDB
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: DevDeployApprovalTopic
+              RunOrder: 8
+            - Name: ExecuteChangeSetDB
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-db
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-db
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/PostgresDB/postgres-db.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/PostgresDB/params/postgres-db-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 9
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: CreateChangeSetECSCluster
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-ecs-cluster
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-ecs-cluster
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/ECS-Cluster/ecs-cluster.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/ECS-Cluster/params/ecs-cluster-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 10
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalECSCluster
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: DevDeployApprovalTopic
+              RunOrder: 11
+            - Name: ExecuteChangeSetECSCluster
+              ActionTypeId:
+                Category: Deploy 
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-ecs-cluster
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-ecs-cluster
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactBuffer::DJ/ECS-Cluster/ecs-cluster.yml
+                TemplateConfiguration: CCArtifactBuffer::DJ/ECS-Cluster/params/ecs-cluster-dev.json
+              InputArtifacts:
+                - Name: CCArtifactBuffer
+              RunOrder: 12
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudWatchEventRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName:
+        Fn::Sub: ${RepoName}-cwerole
+      Description:
+        Ref: CloudWatchEventRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: events.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CloudWatchEventRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName:
+        Fn::Sub: ${RepoName}-cwepolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - codepipeline:StartPipelineExecution
+            Resource:
+              - Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${RepoName}-pipeline
+      Roles:
+        -
+          Ref: CloudWatchEventRole
+              
+  CodePipeLineCWEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-pipeline-event
+      Description:
+        Ref: CloudWatchEventDescription
+      EventPattern:
+        source:
+        - aws.codecommit
+        detail-type:
+        - CodeCommit Repository State Change
+        resources:
+        - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepoName}
+        detail:
+          event:
+          - referenceCreated
+          - referenceUpdated
+          referenceType:
+          - branch
+          referenceName:
+          - master
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${RepoName}-pipeline
+        RoleArn:
+          Fn::GetAtt: [CloudWatchEventRole, Arn]
+        Id:
+          Fn::Join:
+          - '-'
+          - - codepipeline
+            - Ref: RepoName
+
+Outputs:
+  DevDeployTopicName:
+    Description: "The topic name of Dev deployment of service"
+    Value:
+      Fn::GetAtt: [DevDeployApprovalTopic, TopicName]
+
+  UATDeployTopicName:
+    Description: "The topic name of UAT deployment of service"
+    Value:
+      Fn::GetAtt: [UATDeployApprovalTopic, TopicName]
+
+  PipelineVersionNumber:
+    Description: "The version number of the pipeline"
+    Value:
+      Fn::GetAtt: [Codepipeline, Version]
+
+  CloudWatchEventRoleARN:
+    Description: "The ARN of the cloudwatch event"
+    Value:
+      Fn::GetAtt: [CloudWatchEventRole, Arn]
+
+  CloudWatchEventRuleARN:
+    Description: "The ARN of the cloudwatch event that will trigger the pipeline"
+    Value:
+      Fn::GetAtt: [CodePipeLineCWEventRule, Arn]

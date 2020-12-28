@@ -1,0 +1,480 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template provisions the codebuild, codedeploy, codepipeline and SNS approval topics for Dev & QA"
+
+Parameters:
+  RepoName:
+    Description: "The name of the code commit repository"
+    Type: String
+  CommonName:
+    Description: "the common name that needs to be given"
+    Type: String
+  ProjectDescription:
+    Description: "The description needs to be given for the code build project"
+    Type: String
+  DevAccountNumber:
+    Description: "The account number for the compute Dev"
+    Type: Number
+  UATAccountNumber:
+    Description: "The account number for the compute UAT"
+    Type: Number
+  CMKARN:
+    Description: "ARN of the KMS CMK creates in Tools account"
+    Type: String
+  CodeBuildNotificationEmail:
+    Description: "The list of ID's to which the notification needs to be sent when codebuild fails"
+    Type: String
+  DevApprovalEmail:
+    Description: "The list of approvers for deploying the CFN to dev env"
+    Type: String
+  UATApprovalEmail:
+    Description: "The list of approvers for deploying the CFN to UAT env"
+    Type: String
+  ApplicationName:
+    Description: "The name of the application name that needs to be given"
+    Type: String
+  CloudWatchEventDescription:
+    Description: "The description needs to be given for the cloudwatch event rule"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName:
+        Fn::Sub: ${RepoName}-repository
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowPushPull
+            Effect: Allow
+            Principal:
+              AWS:
+                - Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-ecstaskexecrole
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    DependsOn:
+      - ECRRepository
+    Properties:
+      Name: 
+       Fn::Sub: ${RepoName}-project
+      Description: 
+        Ref: ProjectDescription
+      EncryptionKey:
+        Ref: CMKARN
+      Source:
+        Type: CODEPIPELINE
+        GitCloneDepth: 1
+      Environment: 
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: IMAGE_NAME
+            Type: PLAINTEXT
+            Value:
+              Ref: ECRRepository
+          - Name: CONTAINER_NAME
+            Type: PLAINTEXT
+            Value: 
+              Ref: RepoName
+      ServiceRole:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-codebuildrole
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache: 
+        Type: NO_CACHE
+      LogsConfig:
+        CloudWatchLogs:
+          GroupName:
+            Fn::Join:
+              - '-'
+              - - "log-group"
+                - Fn::Sub: ${RepoName}-project
+          Status: ENABLED
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-codebuild-notification
+      DisplayName: Notification topic for codebuild state changes
+      Subscription:
+        - Endpoint:
+            Ref: CodeBuildNotificationEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  CodeBuildNotificationConfig:
+    Type: AWS::CodeStarNotifications::NotificationRule
+    DependsOn:
+      - CodeBuildProject
+      - CodeBuildNotificationTopic
+    Properties:
+      DetailType: FULL
+      EventTypeIds:
+        - codebuild-project-build-state-failed
+        - codebuild-project-build-state-stopped
+      Name:
+        Fn::Sub: ${RepoName}-project-notification
+      Resource:
+        Fn::GetAtt: [CodeBuildProject, Arn]
+      Status: ENABLED
+      Targets:
+        - TargetType: SNS
+          TargetAddress:
+            Fn::Sub: arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${RepoName}-codebuild-notification
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  DevDeployApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-devdeploy
+      DisplayName: Dev Deploy CFN approval topic
+      Subscription:
+        - Endpoint:
+            Ref: DevApprovalEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  UATDeployApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName:
+        Fn::Sub: ${RepoName}-uatdeploy
+      DisplayName: UAT Deploy CFN approval topic
+      Subscription:
+        - Endpoint:
+            Ref: UATApprovalEmail
+          Protocol: email
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  Codepipeline:
+    Type: AWS::CodePipeline::Pipeline
+    DependsOn:
+      - DevDeployApprovalTopic
+      - UATDeployApprovalTopic
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-pipeline
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-pipelinerole
+      ArtifactStore:
+        Type: S3
+        Location:
+          Fn::Sub: ${CommonName}-pipeline-artifact
+        EncryptionKey:
+          Id:
+            Ref: CMKARN
+          Type: KMS
+      Stages:
+        - Name: Source
+          Actions: 
+            - Name: Code
+              ActionTypeId:
+                Category: Source 
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName:
+                  Ref: RepoName
+                BranchName: master
+                PollForSourceChanges: False
+              OutputArtifacts:
+                - Name: CCArtifactPublishAPI
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName:
+                  Fn::Sub: ${RepoName}-project
+              InputArtifacts:
+                - Name: CCArtifactPublishAPI
+              OutputArtifacts:
+                - Name: CBArtifactPublishAPI
+              RunOrder: 2
+        - Name: CreateTaskDefandServiceForDev
+          Actions: 
+            - Name: CreateChangeSetDevTaskDefandService
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-ecs-task-def-service
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-ecs-task-def-service
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactPublishAPI::ecs-service-task-def-create-template.yml
+                TemplateConfiguration: CCArtifactPublishAPI::params/ecs-service-task-def-create-param-dev.json
+              InputArtifacts:
+                - Name: CCArtifactPublishAPI
+              RunOrder: 1
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+            - Name: DevDeployCFNApprovalECSTaskDefandService
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                CustomData: "Please review the change set of platformdeployment before proceeding further"
+                NotificationArn:
+                  Ref: DevDeployApprovalTopic
+              RunOrder: 2
+            - Name: ExecuteChangeSetDevECSTaskDefandService
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ChangeSetName:
+                  Fn::Sub: ${RepoName}-dev-ecs-task-def-service
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: 
+                  Fn::Sub: ${RepoName}-dev-ecs-task-def-service
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn:
+                  Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-cfndeployerrole
+                TemplatePath: CCArtifactPublishAPI::ecs-service-task-def-create-template.yml
+                TemplateConfiguration: CCArtifactPublishAPI::params/ecs-service-task-def-create-param-dev.json
+              InputArtifacts:
+                - Name: CCArtifactPublishAPI
+              RunOrder: 3
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+        - Name: DeployToDev
+          Actions:
+            - Name: DeployServiceToDev
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: ECS
+              Configuration:
+                ClusterName: 
+                  Fn::Sub: ${ApplicationName}-cluster
+                ServiceName:
+                  Ref: RepoName
+                FileName: imagedefinitions.json
+              InputArtifacts:
+                - Name: CBArtifactPublishAPI
+              RunOrder: 4
+              RoleArn:
+                Fn::Sub: arn:aws:iam::${DevAccountNumber}:role/${CommonName}-pipelinecfnRole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+              
+  CodePipeLineCWEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Sub: ${RepoName}-pipe-event
+      Description:
+        Ref: CloudWatchEventDescription
+      EventPattern:
+        source:
+        - aws.codecommit
+        detail-type:
+        - CodeCommit Repository State Change
+        resources:
+        - Fn::Sub: arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${RepoName}
+        detail:
+          event:
+          - referenceCreated
+          - referenceUpdated
+          referenceType:
+          - branch
+          referenceName:
+          - master
+      State: ENABLED
+      Targets:
+      - Arn:
+          Fn::Sub: arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${RepoName}-pipeline
+        RoleArn:
+          Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${CommonName}-cwerole
+        Id:
+          Fn::Join:
+          - '-'
+          - - codepipeline
+            - Ref: RepoName
+
+Outputs:
+  ProjectARN:
+    Description: "The ARN of the dev code build project"
+    Value:
+      Fn::GetAtt: [CodeBuildProject, Arn]
+
+  CodeBuildNotificationTopicName:
+    Description: "The topic name for the codebuild notifications"
+    Value:
+      Fn::GetAtt: [CodeBuildNotificationTopic, TopicName]
+
+  CodeBuildNotificationName:
+    Description: "The name of the codebuild notifications"
+    Value:
+      Ref: CodeBuildNotificationConfig
+
+  DevDeployTopicName:
+    Description: "The topic name of Dev deployment of service"
+    Value:
+      Fn::GetAtt: [DevDeployApprovalTopic, TopicName]
+
+  UATDeployTopicName:
+    Description: "The topic name of UAT deployment of service"
+    Value:
+      Fn::GetAtt: [UATDeployApprovalTopic, TopicName]
+
+  PipelineVersionNumber:
+    Description: "The version number of the pipeline"
+    Value:
+      Fn::GetAtt: [Codepipeline, Version]
+
+  CloudWatchEventRuleARN:
+    Description: "The ARN of the cloudwatch event that will trigger the pipeline"
+    Value:
+      Fn::GetAtt: [CodePipeLineCWEventRule, Arn]
