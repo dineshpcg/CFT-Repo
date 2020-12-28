@@ -1,0 +1,1967 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "This template create the AWS step functions"
+
+Parameters:
+  RepoName:
+    Description: "The repository name that needs to be given"
+    Type: String
+  pApplicationName:
+    Description: "The application name that needs to be given"
+    Type: String
+  pEnvironment:
+    Description: "The environment name that needs to be given"
+    Type: String
+  pDeltaLoadStateMachineName:
+    Description: "The state machine name that needs to be given for delta load"
+    Type: String
+  pFullLoadStateMachineName:
+    Description: "The state machine name that needs to be given for full load"
+    Type: String
+  pInitialLoadStateMachineName:
+    Description: "The state machine name that needs to be given for initial load"
+    Type: String
+  pConsolidationLoadStateMachineName:
+    Description: "The state machine name that needs to be given for full load"
+    Type: String    
+  pSourceBucket:
+    Description: "The name of the bucket that holds the CDC delta parquet files"
+    Type: String
+  pEmailGroup:
+    Description: "The email group to which the job failure notifications need to be sent"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+
+  ####### Delta Load Components #######
+  DeltaLoadStepFunctionLambdaFunction:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+      - DeltaLoadStepFunction
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "lambda"
+            - Ref: pDeltaLoadStateMachineName
+      Handler: DeltaLoadStepFuncLambdaFunc.lambda_handler
+      CodeUri: ./../../lambda/DeltaLoadStepFunctionLambdaFunction
+      Runtime: python3.7
+      Timeout: 120
+      Environment:
+        Variables:
+          statemachinearn:
+            Fn::GetAtt: [DeltaLoadStepFunction, Arn]
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  DeltaLoadStepFuncLambdaFuncInvokePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - DeltaLoadStepFunctionLambdaFunction
+    Properties:
+      FunctionName: 
+        Fn::GetAtt: [DeltaLoadStepFunctionLambdaFunction, Arn]
+      Action: 'lambda:InvokeFunction'
+      Principal: s3.amazonaws.com
+      SourceAccount: 
+        Ref: AWS::AccountId
+      SourceArn: 
+        Fn::Sub: arn:aws:s3:::${pSourceBucket}
+
+  LambdaIAMRole:
+    Type: AWS::IAM::Role
+    DependsOn:
+      - DeltaLoadStepFunction
+      - FullLoadStepFunction
+      - InitialLoadStepFunction
+      - ConsolidationLoadStepFunction
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - lambda.amazonaws.com
+                - events.amazonaws.com
+            Action: 
+             - 'sts:AssumeRole'
+      Path: "/"
+      Policies:
+        - PolicyName: PolicyForLambdaFunctions
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource: 
+                  - Fn::Sub: arn:aws:s3:::${pSourceBucket}
+                  - Fn::Sub: arn:aws:s3:::${pSourceBucket}/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                  - states:DescribeExecution
+                Resource:
+                  - Fn::GetAtt: [DeltaLoadStepFunction, Arn]
+                  - Fn::GetAtt: [FullLoadStepFunction, Arn]
+                  - Fn::GetAtt: [InitialLoadStepFunction, Arn]
+                  - Fn::GetAtt: [ConsolidationLoadStepFunction, Arn]
+              - Effect: Allow
+                Action:
+                  - events:DescribeRule
+                  - events:ListRules
+                  - events:EnableRule
+                  - events:DisableRule
+                Resource:
+                  - "*"    
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  DeltaLoadStepFunctionSNS:
+    Type: AWS::SNS::Topic
+    Properties:   
+      DisplayName: 
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "sns"
+            - Ref: pDeltaLoadStateMachineName
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: 
+            Ref: pEmailGroup
+          Protocol: email
+      TopicName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "snstopic"
+            - Ref: pDeltaLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+        
+  DeltaLoadStepFuncActivity:
+    Type: AWS::StepFunctions::Activity
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfun-workflow"
+            - Ref: pDeltaLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  DeltaLoadStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    DependsOn:
+      - DeltaLoadStepFunctionSNS
+    Properties:
+      StateMachineName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfunc"
+            - Ref: pDeltaLoadStateMachineName
+      StateMachineType: STANDARD
+      DefinitionString:
+        !Sub
+          - |-
+                {
+                  "Comment": "Delta-Load State Machine",
+                  "StartAt": "InventoryAvailabilityRealtimeComputeJobV1",
+                  "States": {
+                    "InventoryAvailabilityRealtimeComputeJobV1":{
+                      "Comment": "InventoryViewPreparation Job",
+                      "Type": "Task",
+                      "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                      "Parameters":{
+                        "JobName":"InventoryAvailabilityRealtimeComputeJobV1",
+                        "Timeout": 2400,
+                        "Arguments":
+                                   {
+                           "event_key.$": "$.input.event_key"
+                                   }
+                                   },                          
+                      "Retry": [ {
+                        "ErrorEquals": [ "States.DataLimitExceeded" ],
+                        "IntervalSeconds": 1,
+                        "BackoffRate": 2.0,
+                        "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0, 
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        }
+                      ],
+                      "Catch": [ {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "Next": "Notification-Block"
+                        }
+                      ],
+                      "End":true
+                     },
+                    "Notification-Block": {
+                      "Comment":"Error Handling State for DataSize Issue",
+                      "Type":"Task",
+                      "Resource":"arn:aws:states:::sns:publish",
+                      "Parameters": {
+                        "TopicArn": "${SNS_ARN}",
+                        "Message": "Inventory Availability Compute for Delta-Load Failed",
+                        "Subject": "State Machine for Delta Load has failed"
+                      },
+                      "End":true
+                    }
+                  }
+                }
+          - {SNS_ARN: !Ref DeltaLoadStepFunctionSNS}
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-statemachinerole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  ####### Full Load Components #######
+
+  FullLoadStepFunctionLambdaFunction:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+      - FullLoadStepFunction
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "lambda"
+            - Ref: pFullLoadStateMachineName
+      Handler: FullLoadStepFuncLambdaFunc.lambda_handler
+      CodeUri: ./../../lambda/FullLoadStepFunctionLambdaFunction
+      Runtime: python3.7
+      Timeout: 120
+      Environment:
+        Variables:
+          statemachinearn:
+            Fn::GetAtt: [FullLoadStepFunction, Arn]
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  FullLoadStepFunctionSNS:
+    Type: AWS::SNS::Topic
+    Properties:   
+      DisplayName: 
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "sns"
+            - Ref: pFullLoadStateMachineName
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: 
+            Ref: pEmailGroup
+          Protocol: email
+      TopicName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "snstopic"
+            - Ref: pFullLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  StepFnFullLoadLambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !Ref FullLoadStepFunctionLambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StepFnLambdaCronTrigger.Arn      
+  
+  FullLoadStepFuncActivity:
+    Type: AWS::StepFunctions::Activity
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfun-workflow"
+            - Ref: pFullLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  StepFnLambdaCronTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - "inv-avail"
+            - Ref: pEnvironment
+            - "FL-Cron-Schedule"
+      RoleArn: 
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      ScheduleExpression: cron(8 00 * * ? *)
+      State: DISABLED
+      Targets:
+        - Arn: !GetAtt FullLoadStepFunctionLambdaFunction.Arn
+          Id: !Ref FullLoadStepFunctionLambdaFunction        
+
+  FullLoadStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    DependsOn:
+      - FullLoadStepFunctionSNS
+    Properties:
+      StateMachineName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfunc"
+            - Ref: pFullLoadStateMachineName
+      StateMachineType: STANDARD
+      DefinitionString:
+        !Sub
+          - |-
+                {
+                  "Comment": "Full-Load State Machine",
+                  "StartAt": "Pre-Process",
+                  "States": {
+                    "Pre-Process": {
+                      "Comment": "A preprocess state to trigger the state machine.",
+                      "Type": "Pass",
+                      "Next": "Parallel-Process"
+                    },
+                    "Parallel-Process": {
+                      "Type": "Parallel",
+                      "Next": "DJOnlineInventoryViewV1",
+                      "Catch": [ {
+                         "ErrorEquals": [ "States.DataLimitExceeded"],
+                         "Next": "Notification-Block"
+                                         }, 
+                                         {
+                         "ErrorEquals": [ "States.Runtime"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Timeout"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.TaskFailed"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Permissions"],
+                         "Next": "Notification-Block"
+                                         }
+                                       ],
+                      "Branches": [ {
+                          "StartAt": "DJInventoryPositionsDataPreparationJobV1",
+                          "States": {
+                            "DJInventoryPositionsDataPreparationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJInventoryPositionsDataPreparationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSKUAttributeJobV1",
+                          "States": {
+                            "DJSKUAttributeJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters": {
+                                "JobName":"DJSKUAttributeJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "DJOnlineInventoryViewV1": {
+                      "Comment": "InventoryViewPreparation Job",
+                      "Type": "Task",
+                      "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                      "Parameters": {
+                        "JobName":"DJOnlineInventoryViewV1",
+                        "Timeout": 2400
+                      },
+                      "Retry": [ {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        }
+                      ],
+                      "Catch": [ {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "Next": "Notification-Block"
+                        }
+                      ],             
+                      "End":true
+                    },
+                    "Notification-Block": {
+                      "Comment":"Error Handling State for DataSize Issue",
+                      "Type":"Task",
+                      "Resource":"arn:aws:states:::sns:publish",
+                      "Parameters": {
+                        "TopicArn": "${SNS_ARN}",
+                        "Message": "Inventory Availability Compute for Full-Load Failed",
+                        "Subject": "State Machine for Full Load has failed"
+                      },
+                      "End":true
+                    }                
+                  }
+                }
+          - {SNS_ARN: !Ref FullLoadStepFunctionSNS}
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-statemachinerole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  ####### Initial Load Components #######
+
+  InitialLoadStepFunctionLambdaFunction:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+      - InitialLoadStepFunction
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "lambda"
+            - Ref: pInitialLoadStateMachineName
+      Handler: InitialLoadStepFuncLambdaFunc.lambda_handler
+      CodeUri: ./../../lambda/InitialLoadStepFunctionLambdaFunction
+      Runtime: python3.7
+      Timeout: 120
+      Environment:
+        Variables:
+          statemachinearn:
+            Fn::GetAtt: [InitialLoadStepFunction, Arn]
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  InitialLoadStepFuncLambdaFuncInvokePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - InitialLoadStepFunctionLambdaFunction
+    Properties:
+      FunctionName: 
+        Fn::GetAtt: [InitialLoadStepFunctionLambdaFunction, Arn]
+      Action: 'lambda:InvokeFunction'
+      Principal: s3.amazonaws.com
+      SourceAccount: 
+        Ref: AWS::AccountId
+      SourceArn: 
+        Fn::Sub: arn:aws:s3:::${pSourceBucket}
+
+  InitialLoadStepFunctionSNS:
+    Type: AWS::SNS::Topic
+    Properties:   
+      DisplayName: 
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "sns"
+            - Ref: pInitialLoadStateMachineName
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: 
+            Ref: pEmailGroup
+          Protocol: email
+      TopicName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "snstopic"
+            - Ref: pInitialLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+        
+  InitialLoadStepFuncActivity:
+    Type: AWS::StepFunctions::Activity
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfun-workflow"
+            - Ref: pInitialLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  InitialLoadStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    DependsOn:
+      - InitialLoadStepFunctionSNS
+    Properties:
+      StateMachineName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfunc"
+            - Ref: pInitialLoadStateMachineName
+      StateMachineType: STANDARD
+      DefinitionString:
+        !Sub
+          - |-
+                {
+                  "Comment": "Intial-Load State Machine",
+                  "StartAt": "Pre-Process",
+                  "States": {
+                    "Pre-Process": {
+                      "Comment": "A preprocess state to trigger the state machine.",
+                      "Type": "Pass",
+                      "Next": "Parallel-Process"
+                    },
+                    "Parallel-Process": {
+                      "Type": "Parallel",
+                      "Next": "DJOnlineInventoryViewV1",
+                      "Catch": [ {
+                         "ErrorEquals": [ "States.DataLimitExceeded"],
+                         "Next": "Notification-Block"
+                                         }, 
+                                         {
+                         "ErrorEquals": [ "States.Runtime"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Timeout"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.TaskFailed"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Permissions"],
+                         "Next": "Notification-Block"
+                                         }
+                                       ],
+                      "Branches": [ {
+                          "StartAt": "DJInventoryPositionsDataPreparationJobV1",
+                          "States": {
+                            "DJInventoryPositionsDataPreparationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJInventoryPositionsDataPreparationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSKUAttributeJobV1",
+                          "States": {
+                            "DJSKUAttributeJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters": {
+                                "JobName":"DJSKUAttributeJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "DJOnlineInventoryViewV1": {
+                      "Comment": "InventoryViewPreparation Job",
+                      "Type": "Task",
+                      "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                      "Parameters": {
+                        "JobName":"DJOnlineInventoryViewV1",
+                        "Timeout": 2400
+                      },
+                      "Retry": [ {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        }
+                      ],
+                      "Catch": [ {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "Next": "Notification-Block"
+                        }
+                      ],             
+                      "End":true
+                    },
+                    "Notification-Block": {
+                      "Comment":"Error Handling State for DataSize Issue",
+                      "Type":"Task",
+                      "Resource":"arn:aws:states:::sns:publish",
+                      "Parameters": {
+                        "TopicArn": "${SNS_ARN}",
+                        "Message": "Inventory Availability Compute for Initial-Load Failed",
+                        "Subject": "State Machine for Initial Load has failed"
+                      },
+                      "End":true
+                    }                
+                  }
+                }
+          - {SNS_ARN: !Ref InitialLoadStepFunctionSNS}
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-statemachinerole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  ####### Consolidation Load Components #######
+
+  ConsolidationLoadStepFunctionLambdaFunction:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+      - ConsolidationLoadStepFunction
+    Properties:
+      FunctionName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "lambda"
+            - Ref: pConsolidationLoadStateMachineName
+      Handler: ConsolidationLoadStepFuncLambdaFunc.lambda_handler
+      CodeUri: ./../../lambda/ConsolidationLoadStepFunctionLambdaFunction
+      Runtime: python3.7
+      Timeout: 120
+      Environment:
+        Variables:
+          statemachinearn:
+            Fn::GetAtt: [ConsolidationLoadStepFunction, Arn]
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  StepFnCLLambdaCronTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - "inv-avail"
+            - Ref: pEnvironment
+            - "CL-Cron-Schedule"
+      RoleArn: 
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      ScheduleExpression: cron(8 00 * * ? *)
+      State: DISABLED
+      Targets:
+        - Arn: !GetAtt ConsolidationLoadStepFunctionLambdaFunction.Arn
+          Id: !Ref ConsolidationLoadStepFunctionLambdaFunction
+
+  ConsolidationLoadStepFunctionSNS:
+    Type: AWS::SNS::Topic
+    Properties:   
+      DisplayName: 
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "sns"
+            - Ref: pConsolidationLoadStateMachineName
+      FifoTopic: false
+      Subscription: 
+        - Endpoint: 
+            Ref: pEmailGroup
+          Protocol: email
+      TopicName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "snstopic"
+            - Ref: pConsolidationLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  StepFnConsolidationLoadLambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !Ref ConsolidationLoadStepFunctionLambdaFunction
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StepFnCLLambdaCronTrigger.Arn      
+  
+  ConsolidationLoadStepFuncActivity:
+    Type: AWS::StepFunctions::Activity
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfun-workflow"
+            - Ref: pConsolidationLoadStateMachineName
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+  ConsolidationLoadStepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    DependsOn:
+      - ConsolidationLoadStepFunctionSNS
+    Properties:
+      StateMachineName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "stepfunc"
+            - Ref: pConsolidationLoadStateMachineName
+      StateMachineType: STANDARD
+      DefinitionString:
+        !Sub
+          - |-
+                {
+                  "Comment": "Consolidation-Load State Machine",
+                  "StartAt": "Pre-Process",
+                  "States": {
+                    "Pre-Process": {
+                      "Comment": "A preprocess state to trigger the state machine.",
+                      "Type": "Pass",
+                      "Next": "Parallel-Process-1"
+                    },
+                    "Parallel-Process-1": {
+                      "Type": "Parallel",
+                      "Next": "Cleanuplambda",
+                      "Catch": [ {
+                         "ErrorEquals": [ "States.DataLimitExceeded"],
+                         "Next": "Notification-Block"
+                                         }, 
+                                         {
+                         "ErrorEquals": [ "States.Runtime"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Timeout"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.TaskFailed"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Permissions"],
+                         "Next": "Notification-Block"
+                                         }
+                                       ],
+                      "Branches": [ {
+                          "StartAt": "DJStoreInventoryConsolidationJobV1",
+                          "States": {
+                            "DJStoreInventoryConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters": {
+                                "JobName":"DJStoreInventoryConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJWarehouseInventoryConsolidationJobV1",
+                          "States": {
+                            "DJWarehouseInventoryConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJWarehouseInventoryConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJVendorInventoryConsolidationJobV1",
+                          "States": {
+                            "DJVendorInventoryConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJVendorInventoryConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSkuAttributeConsolidationJobV1",
+                          "States": {
+                            "DJSkuAttributeConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJSkuAttributeConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSupplierConsolidationJobV1",
+                          "States": {
+                            "DJSupplierConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJSupplierConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSkuConsolidationJobV1",
+                          "States": {
+                            "DJSkuConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJSkuConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSkuConfigurationConsolidationJobV1",
+                          "States": {
+                            "DJSkuConfigurationConsolidationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJSkuConfigurationConsolidationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "Cleanuplambda": {
+                      "Comment": "Clean Up Lambda trigger",
+                      "Type": "Task",
+                      "Resource":"arn:aws:states:::lambda:invoke",
+                      "Parameters":{
+                        "FunctionName":"phlambdaforclload",
+                        "InvocationType":"RequestResponse"
+                      },
+                      "Retry": [ {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        }
+                      ],
+                      "Catch": [ {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "Next": "Notification-Block"
+                        }
+                      ],             
+                      "Next":"Parallel-Process-2"
+                    },
+                    "Parallel-Process-2": {
+                      "Type": "Parallel",
+                      "Next": "DJOnlineInventoryViewV1",
+                      "Catch": [ {
+                         "ErrorEquals": [ "States.DataLimitExceeded"],
+                         "Next": "Notification-Block"
+                                         }, 
+                                         {
+                         "ErrorEquals": [ "States.Runtime"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Timeout"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.TaskFailed"],
+                         "Next": "Notification-Block"
+                                         },
+                                         {
+                         "ErrorEquals": [ "States.Permissions"],
+                         "Next": "Notification-Block"
+                                         }
+                                       ],
+                      "Branches": [ {
+                          "StartAt": "DJInventoryPositionsDataPreparationJobV1",
+                          "States": {
+                            "DJInventoryPositionsDataPreparationJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters": {
+                                "JobName":"DJInventoryPositionsDataPreparationJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true
+                            }
+                          }
+                        },
+                        {
+                          "StartAt": "DJSKUAttributeJobV1",
+                          "States": {
+                            "DJSKUAttributeJobV1": {
+                              "Type": "Task",
+                              "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                              "Parameters":{
+                                "JobName":"DJSKUAttributeJobV1",
+                                "Timeout": 2400
+                              },
+                              "Retry": [ {
+                                "ErrorEquals": [ "States.DataLimitExceeded" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                         },
+                                         {
+                                "ErrorEquals": [ "States.Runtime" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Timeout" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.TaskFailed" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          },
+                                          {
+                                "ErrorEquals": [ "States.Permissions" ],
+                                "IntervalSeconds": 1,
+                                "BackoffRate": 2.0,
+                                "MaxAttempts": 2
+                                          }
+                                       ],
+                              "End": true 
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "DJOnlineInventoryViewV1": {
+                      "Comment": "InventoryViewPreparation Job",
+                      "Type": "Task",
+                      "Resource":"arn:aws:states:::glue:startJobRun.sync",
+                      "Parameters":{
+                        "JobName":"DJOnlineInventoryViewV1",
+                        "Timeout": 2400
+                      },
+                      "Retry": [ {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "IntervalSeconds": 1,
+                          "BackoffRate": 2.0,
+                          "MaxAttempts": 2
+                        }
+                      ],
+                      "Catch": [ {
+                          "ErrorEquals": [ "States.Runtime" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Timeout" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.TaskFailed" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.Permissions" ],
+                          "Next": "Notification-Block"
+                        },
+                        {
+                          "ErrorEquals": [ "States.DataLimitExceeded" ],
+                          "Next": "Notification-Block"
+                        }
+                      ],             
+                      "End":true
+                    },
+                    "Notification-Block": {
+                      "Comment":"Error Handling State for DataSize Issue",
+                      "Type":"Task",
+                      "Resource":"arn:aws:states:::sns:publish",
+                      "Parameters": {
+                        "TopicArn": "${SNS_ARN}",
+                        "Message": "Inventory Availability Compute for Consolidation-Load Failed",
+                        "Subject": "State Machine for Consolidation Load has failed"
+                      },
+                      "End":true
+                    }                
+                  }
+                }
+          - {SNS_ARN: !Ref ConsolidationLoadStepFunctionSNS}
+      RoleArn:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-statemachinerole
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+Outputs:
+  DeltaLoadStepFunctionLambdaFunctionArn:
+    Description: "The ARN of the lambda function fro triggering the delta load state machine"
+    Value:
+      Fn::GetAtt: [DeltaLoadStepFunctionLambdaFunction, Arn]
+
+  DeltaLoadStepFuncLambdaFuncInvoke:
+    Description: "The name of the lambda invoke permission for delta load state machine"
+    Value:
+      Ref: DeltaLoadStepFuncLambdaFuncInvokePermission
+
+  LambdaIAMRoleArn:
+    Description: "The ARN of the lambda role"
+    Value:
+      Fn::GetAtt: [LambdaIAMRole, Arn]
+
+  DeltaLoadSNSTopicName:
+    Description: "The SNS Topic name for the delta load state machine"
+    Value:
+      Fn::GetAtt: [DeltaLoadStepFunctionSNS, TopicName]
+
+  DeltaLoadStepFunctionActivityName:
+    Description: "The step function activity name for delta load"
+    Value:
+      Ref: DeltaLoadStepFuncActivity
+
+  DeltaLoadStepFunctionName:
+    Description: "The ARN of the delta load step function"
+    Value:
+      Fn::GetAtt: [DeltaLoadStepFunction, Name]
+
+  FullLoadStepFunctionLambdaFunctionArn:
+    Description: "The ARN of the lambda function fro triggering the full load state machine"
+    Value:
+      Fn::GetAtt: [FullLoadStepFunctionLambdaFunction, Arn]
+
+  StepFnLambdaCronTrigger:
+    Description: "The name of the lambda invoke permission for full load state machine"
+    Value:
+      Ref: StepFnLambdaCronTrigger
+
+  FullLoadSNSTopicName:
+    Description: "The SNS Topic name for the full load state machine"
+    Value:
+      Fn::GetAtt: [FullLoadStepFunctionSNS, TopicName]
+
+  FullLoadStepFunctionActivityName:
+    Description: "The step function activity name for full load"
+    Value:
+      Ref: FullLoadStepFuncActivity
+
+  FullLoadStepFunctionName:
+    Description: "The ARN of the full load step function"
+    Value:
+      Fn::GetAtt: [FullLoadStepFunction, Name]
+
+  InitialLoadStepFunctionLambdaFunctionArn:
+    Description: "The ARN of the lambda function fro triggering the initial load state machine"
+    Value:
+      Fn::GetAtt: [InitialLoadStepFunctionLambdaFunction, Arn]
+
+  InitialLoadStepFuncLambdaFuncInvoke:
+    Description: "The name of the lambda invoke permission for initial load state machine"
+    Value:
+      Ref: InitialLoadStepFuncLambdaFuncInvokePermission
+
+  InitialLoadSNSTopicName:
+    Description: "The SNS Topic name for the initial load state machine"
+    Value:
+      Fn::GetAtt: [InitialLoadStepFunctionSNS, TopicName]
+
+  InitialLoadStepFunctionActivityName:
+    Description: "The step function activity name for initial load"
+    Value:
+      Ref: InitialLoadStepFuncActivity
+
+  InitialLoadStepFunctionName:
+    Description: "The ARN of the initial load step function"
+    Value:
+      Fn::GetAtt: [InitialLoadStepFunction, Name]

@@ -1,0 +1,365 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: "Creates the SAM and lambda functions"
+
+Parameters:
+  pSourceAccountNumber:
+    Type: String
+    Description: "The account number in which the source bucket resides"
+  pDevSourceBucket:
+    Type: String
+    Description: "Raw S3 bucket source to copy"
+  pUATSourceBucket:
+    Type: String
+    Description: "Raw S3 bucket source to copy"
+  pKinesisStreamName:
+    Description: "The stream name for the kinesis"
+    Type: String
+  pLambdaLayerName:
+    Description: Lambda layer name that needs tobe given
+    Type: String
+  pLambdaLayerVersion:
+    Description: Lambda Layer version that needs to be given
+    Type: Number
+  plambdaLibBucket:
+    Description: S3 bucket for Lambda Layer libraries
+    Type: String
+  pLambdaLayerDesc:
+    Description: Lambda layer library details
+    Type: String
+  pDestinationBucket:
+    Description: "Compute S3 bucket copy destination"
+    Type: String
+  pDeltaLambdaMemorySize:
+    Description: "Memory settings for lambda"
+    Type: Number
+  pInitialLambdaMemorySize:
+    Description: "Memory settings for lambda"
+    Type: Number
+  pDeltaLambdaTimeout:
+    Description: "Time out settings for lambda"
+    Type: Number
+  pInitialLambdaTimeout:
+    Description: "Time out settings for lambda"
+    Type: Number
+  pDeltaLambdaStreamRecLimit:
+    Description: "Stream record limits"
+    Type: Number
+  pEmailGroup:
+    Description: "The email group to which the job failure notifications need to be sent"
+    Type: String
+  pSQSName:
+    Description: "The name of the SQS event"
+    Type: String
+  pGovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  pGovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  pGovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  pGovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  pGovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  pGovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  pGovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  pGovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  InitialLoadLambdaFuntion:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+    Properties:
+      Handler: InitialLoadLambdaFunc.lambda_handler
+      CodeUri: ./../../lambda/CopyFromRawToComputeLambda
+      FunctionName:
+        Fn::Sub: ${pGovernanceCompany}-InitialLoadLambdaFunction
+      Runtime: python3.7
+      MemorySize:
+        Ref: pInitialLambdaMemorySize
+      Timeout:
+        Ref: pInitialLambdaTimeout
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref pGovernanceCompany
+        whlau:governance:department: !Ref pGovernanceDepartment
+        whlau:governance:application: !Ref pGovernanceApplication
+        whlau:governance:layer: !Ref pGovernanceLayer
+        whlau:governance:environment: !Ref pGovernanceEnvironment
+        whlau:governance:brand: !Ref pGovernanceBrand
+        whlau:governance:approver: !Ref pGovernanceApprover
+        whlau:governance:project: !Ref pGovernanceProject
+# Uncomment the below API section if API gateway is needed for testing lambda
+      # Events:
+      #   CopyFromRawToComputeLambdaFunctionApi:
+      #     Type: Api
+      #     Properties:
+      #       Path: /CopyFromRawToComputeLambdaFunction
+      #       Method: GET
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - DeltaLoadLambdaFunction
+    Properties:
+      FunctionName:
+        Fn::GetAtt: [DeltaLoadLambdaFunction, Arn]
+      Action: 'lambda:InvokeFunction'
+      Principal: s3.amazonaws.com
+      SourceAccount:
+        Ref: pSourceAccountNumber
+      SourceArn:
+        Fn::Sub: arn:aws:s3:::${pDevSourceBucket}
+
+  LambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.7
+        - python3.6
+      Content:
+        S3Bucket:
+          Ref: plambdaLibBucket
+        S3Key: python.zip
+      Description:
+        Ref: pLambdaLayerDesc
+      LayerName:
+        Ref: pLambdaLayerName
+
+  DeltaLoadLambdaFunction:
+    Type:  AWS::Serverless::Function
+    DependsOn:
+      - LambdaIAMRole
+    Properties:
+      Handler: DeltaLoadLambdaFunction.lambda_handler
+      CodeUri: ./../../lambda/DeltaLoadLambdaFunction
+      FunctionName:
+        Fn::Sub: ${pGovernanceCompany}-DeltaLoadLambdaFunction
+      Layers:
+        - Ref: LambdaLayer
+      Runtime: python3.7
+      MemorySize:
+        Ref: pDeltaLambdaMemorySize
+      Timeout:
+        Ref: pDeltaLambdaTimeout
+      Environment:
+        Variables:
+          StreamRecLimit:
+            Ref: pDeltaLambdaStreamRecLimit
+          destination_bucket_name:
+            Ref: pDestinationBucket
+          streamname:
+            Ref: pKinesisStreamName
+      Role:
+        Fn::GetAtt: [LambdaIAMRole, Arn]
+      Tags:
+        whlau:governance:company: !Ref pGovernanceCompany
+        whlau:governance:department: !Ref pGovernanceDepartment
+        whlau:governance:application: !Ref pGovernanceApplication
+        whlau:governance:layer: !Ref pGovernanceLayer
+        whlau:governance:environment: !Ref pGovernanceEnvironment
+        whlau:governance:brand: !Ref pGovernanceBrand
+        whlau:governance:approver: !Ref pGovernanceApprover
+        whlau:governance:project: !Ref pGovernanceProject
+# Uncomment the below API section if API gateway is needed for testing lambda
+      # Events:
+      #   CopyFromRawToComputeLambdaFunctionApi:
+      #     Type: Api
+      #     Properties:
+      #       Path: /CopyFromRawToComputeLambdaFunction
+      #       Method: GET
+
+  LambdaIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${pDevSourceBucket}
+                  - Fn::Sub: arn:aws:s3:::${pDevSourceBucket}/*
+                  - Fn::Sub: arn:aws:s3:::${pUATSourceBucket}
+                  - Fn::Sub: arn:aws:s3:::${pUATSourceBucket}/*
+                  - Fn::Sub: arn:aws:s3:::${pDestinationBucket}
+                  - Fn::Sub: arn:aws:s3:::${pDestinationBucket}/*
+                  - Fn::Sub: arn:aws:s3:::${plambdaLibBucket}
+                  - Fn::Sub: arn:aws:s3:::${plambdaLibBucket}/*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:ReEncrypt*
+                  - kms:GenerateDataKey*
+                  - kms:DescribeKey
+                Resource:
+                  - arn:aws:kms:ap-southeast-2:315785799772:key/46ecbcca-3011-4ceb-b444-3f8851b11a43
+                  - arn:aws:kms:ap-southeast-2:435298438412:key/a5ab14c9-7a41-4a57-8fff-e61be768e7f7
+              - Effect: Allow
+                Action:
+                  - SQS:ReceiveMessage
+                  - SQS:GetQueueAttributes
+                  - SQS:DeleteMessage
+                Resource:
+                  - Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${pSQSName}
+              - Effect: Allow
+                Action:
+                  - kinesis:PutRecord
+                Resource:
+                  - Fn::Sub: arn:aws:kinesis:${AWS::Region}:${AWS::AccountId}:stream/${pKinesisStreamName}
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref pGovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref pGovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref pGovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref pGovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref pGovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref pGovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref pGovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref pGovernanceProject
+  ErronNotificationSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName:
+        Fn::Join:
+          - '-'
+          - - Ref: pGovernanceCompany
+            - Ref: pGovernanceApplication
+            - Ref: pGovernanceEnvironment
+            - "sns-error-notification"
+      FifoTopic: false
+      Subscription:
+        - Endpoint:
+            Ref: pEmailGroup
+          Protocol: email
+      TopicName:
+        Fn::Join:
+          - '-'
+          - - Ref: pGovernanceCompany
+            - Ref: pGovernanceApplication
+            - Ref: pGovernanceEnvironment
+            - "snstopic-error-notification"
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref pGovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref pGovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref pGovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref pGovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref pGovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref pGovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref pGovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref pGovernanceProject
+  LambdaInvocationsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn:
+      - DeltaLoadLambdaFunction
+    Properties:
+      ActionsEnabled: true
+      AlarmDescription: 'Alarm created for LambdaFunction Erros'
+      AlarmName: 'LambdaFunctionErrorsAlarm'
+      AlarmActions:
+        - !Join ['', ['arn:aws:sns:',!Ref 'AWS::Region',':',!Ref 'AWS::AccountId',':',!Sub '${pGovernanceCompany}','-',!Sub '${pGovernanceApplication}','-',!Sub '${pGovernanceEnvironment}','-','snstopic-error-notification']]
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Metrics:
+            - Id: !Sub 'errors_DeltaLoadLambdaFunction'
+              MetricStat:
+                Metric:
+                  Namespace: AWS/Lambda
+                  MetricName: Errors
+                  Dimensions:
+                    - Name: FunctionName
+                      Value: !Ref DeltaLoadLambdaFunction
+                Period: 60
+                Stat: SampleCount
+                Unit: Count
+              ReturnData: True
+      Threshold: 1
+      DatapointsToAlarm: 1
+      TreatMissingData: missing
+
+Outputs:
+  oInitialLoadLambdaFunctionArn:
+    Description: "The ARN of the initial load lambda function"
+    Value:
+      Fn::GetAtt: [InitialLoadLambdaFuntion, Arn]
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-InitialLoadLambdaArn
+
+  oDeltaLoadLambdaFunctionArn:
+    Description: "The ARN of the deltaload lambda function"
+    Value:
+      Fn::GetAtt: [DeltaLoadLambdaFunction, Arn]
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-DeltaLoadLambdaArn
+
+  oLambdaRoleArn:
+    Description: "The ARN of the lambda role"
+    Value:
+      Fn::GetAtt: [LambdaIAMRole, Arn]
+
+  oLambdaLayer:
+    Description: "The ARN of the lambda layer"
+    Value:
+      Ref: LambdaLayer

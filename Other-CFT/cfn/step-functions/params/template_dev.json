@@ -1,0 +1,21 @@
+{
+    "Parameters": {
+        "RepoName": "inventory-availability-compute-app-dj",
+        "pApplicationName": "inventory-availability",
+        "pEnvironment": "dev",
+        "pDeltaLoadStateMachineName": "Delta-Load",
+        "pFullLoadStateMachineName": "Full-Load",
+        "pInitialLoadStateMachineName": "Initial-Load",
+        "pSourceBucket": "inventory-availability-dj-rms-source",
+        "pConsolidationLoadStateMachineName": "Consolidation-Load",
+        "pEmailGroup": "Prateek_Gupta14@infosys.com",
+        "GovernanceCompany": "DJ",
+        "GovernanceDepartment": "IT Service",
+        "GovernanceApplication": "Inventory",
+        "GovernanceLayer": "DaaSCompute",
+        "GovernanceEnvironment": "DEV",
+        "GovernanceBrand": "David Jones",
+        "GovernanceApprover": "Kadiresan",
+        "GovernanceProject": "Connected Retail"
+    }
+}

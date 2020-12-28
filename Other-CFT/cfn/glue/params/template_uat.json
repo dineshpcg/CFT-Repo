@@ -1,0 +1,32 @@
+{
+    "Parameters": {
+        "RepoName": "inventory-availability-compute-app-dj",
+        "pEnvironment": "uat",
+        "pApplicationName": "inventory-availability",
+        "SourceS3bucket": "inventory-availability-dj-rms-uat-source",
+        "Crawlerprefix": "djrms-uat-snapshots",
+        "CDCCrawlerprefix": "djrms-uat-cdc",
+        "DatasetCrawlerprefix": "djrms-uat",
+        "GlueJobScriptPathInventory": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/inventorypositiondatapreparationjob/inventorypositiondatapreparationjob.py",
+        "GlueJobScriptPathSkuAttribute": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/skuattributepreparationjob/skuattributepreparationjob.py",
+        "GlueJobScriptPathInventoryView": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/Inventoryviewpreparationjob/inventoryviewpreparationjob.py",
+        "GlueJobScriptPathStInventoryconsolidation": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/storeinventoryconsolidationjob/storeinventoryconsolidationjob.py",
+        "GlueJobScriptPathWhInventoryconsolidation": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/warehouseinventoryconsolidationjob/warehouseinventoryconsolidationjob.py",
+        "GlueJobScriptPathVndrInventoryconsolidation": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/vendorinventoryconsolidationjob/vendorinventoryconsolidationjob.py",
+        "GlueJobScriptPathInventoryavailabilitycompute": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/inventoryavailabilitycomputejob/inventoryavailabilitycomputejob.py",
+        "GlueJobScriptPathInventoryavailabilityrealtimecompute": "s3://inventory-availability-compute-app-dj-glue-artifact-uat/inventoryavailabilityrealtimecomputejob/inventoryavailabilityrealtimecomputejob.py",
+        "GlueJobScriptPathInventoryavailabilityrejectevaluation": "s3://inventory-availability-compute-app-dj-glue-artifact/inventoryavailabilityrejectevaluationjob/inventoryavailabilityrejectevaluationjob.py",
+        "GlueJobScriptPathSkuAttributeconsolidation": "s3://inventory-availability-compute-app-dj-glue-artifact/skuattributeconsolidationjob/skuattributeconsolidationjob.py",
+        "GlueJobScriptPathSupplierConsolidation": "s3://inventory-availability-compute-app-dj-glue-artifact/supplierconsolidationjob/supplierconsolidationjob.py",
+        "GlueJobScriptPathSkuConsolidationJob": "s3://inventory-availability-compute-app-dj-glue-artifact/skuconsolidationjob/skuconsolidationjob.py",
+        "GlueJobScriptPathSkuConfigurationConsolidationJob": "s3://inventory-availability-compute-app-dj-glue-artifact/skuconfigurationconsolidationjob/skuconfigurationconsolidationjob.py",
+        "GovernanceCompany": "DJ",
+        "GovernanceDepartment": "IT Service",
+        "GovernanceApplication": "Inventory",
+        "GovernanceLayer": "DaaSCompute",
+        "GovernanceEnvironment": "UAT",
+        "GovernanceBrand": "David Jones",
+        "GovernanceApprover": "Kadiresan",
+        "GovernanceProject": "Connected Retail"
+    }
+}

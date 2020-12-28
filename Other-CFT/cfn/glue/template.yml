@@ -1,0 +1,5307 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "This template creates the glue jobs"
+
+Parameters:
+  RepoName:
+    Description: "The name of the repository"
+    Type: String
+  pEnvironment:
+    Description: "The environment in which the resource needs to be created"
+    Type: String
+  pApplicationName:
+    Description: "The application name needs to be given"
+    Type: String
+  SourceS3bucket:
+    Description: "The source bucket for crawler"
+    Type: String
+  Crawlerprefix:
+    Description: "The prefix that needs to be given for the crawler"
+    Type: String
+  CDCCrawlerprefix:
+    Description: "The prefix that needs to be given for the crawler"
+    Type: String
+  DatasetCrawlerprefix:
+    Description: "The prefix that needs to be given for the crawler"
+    Type: String  
+  GlueJobScriptPathInventory:
+    Description: "The path of the inventory availability glue job in S3"
+    Type: String
+  GlueJobScriptPathSkuAttribute:
+    Description: "The path of the skuattribute glue job in S3"
+    Type: String
+  GlueJobScriptPathInventoryView:
+    Description: "The path of the inventoryview glue job in S3"
+    Type: String
+  GlueJobScriptPathStInventoryconsolidation:
+    Description: "The path of the StInventory consolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathWhInventoryconsolidation:
+    Description: "The path of the WhInventory consolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathVndrInventoryconsolidation:
+    Description: "The path of the vndrInventory consolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathInventoryavailabilitycompute:
+    Description: "The path of the vndrInventory consolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathInventoryavailabilityrealtimecompute:
+    Description: "The path of the vndrInventory consolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathInventoryavailabilityrejectevaluation:
+    Description: "The path of the Reject Evaluation glue job in S3"
+    Type: String
+  GlueJobScriptPathSkuAttributeConsolidation:
+    Description: "The path of the skuattributeconsolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathSupplierConsolidation:
+    Description: "The path of the SupplierConsolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathSkuConsolidationJob:
+    Description: "The path of the SkuConsolidation glue job in S3"
+    Type: String
+  GlueJobScriptPathSkuConfigurationConsolidationJob:
+    Description: "The path of the SkuConfigurationConsolidation glue job in S3"
+    Type: String          
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+
+  ####### Glue Database #######
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseInput:
+        Name:
+          Fn::Join:
+            - '-'
+            - - "dj"
+              - Ref: pApplicationName
+              - "rms-db"
+
+  ####### Glue Crawler on cr_product_profile_matrix #######           
+  GlueDataCrawlercrproductprofilematrix:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_product_profile_matrix"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_product_profile_matrix"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_product_profile_matrix"
+                  - "cr_product_profile_matrix-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Crawler on cr_product_profile_matrix #######           
+  GlueDataCrawlerdjwebintradayavailtrigger:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_intraday_avail_trigger"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_web_intraday_avail_trigger"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_intraday_avail_trigger"
+                  - "dj_web_intraday_avail_trigger-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject      
+
+  ####### Glue Crawler on cr_product_profiles #######           
+  GlueDataCrawlercrproductprofiles:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_product_profiles"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_product_profiles"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_product_profiles"
+                  - "cr_product_profiles-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject 
+
+  ####### Glue Crawler on cr_rag_stylclr #######           
+  GlueDataCrawlercrragstylclr:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_rag_stylclr"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_rag_stylclr"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_rag_stylclr"
+                  - "cr_rag_stylclr-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject 
+
+  ####### Glue Crawler on cr_web_countries #######           
+  GlueDataCrawlercrwebcountries:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_web_countries"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_web_countries"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_web_countries"
+                  - "cr_web_countries-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_website_id_map #######           
+  GlueDataCrawlercrwebsiteidmap:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_website_id_map"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_website_id_map"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_website_id_map"
+                  - "cr_website_id_map-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on desc_look #######           
+  GlueDataCrawlerdesclook:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of desc_look"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "desc_look"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "desc_look"
+                  - "desc_look-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_combined_loc_config #######           
+  GlueDataCrawlerdjcombinedlocconfig:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_combined_loc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_combined_loc_config"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_combined_loc_config"
+                  - "dj_combined_loc_config-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Crawler on dj_combined_loc #######           
+  GlueDataCrawlerdjcombinedloc:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_combined_loc"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_combined_loc"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_combined_loc"
+                  - "dj_combined_loc-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_conc_config #######           
+  GlueDataCrawlerdjconcconfig:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_conc_config"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_conc_config"
+                  - "dj_conc_config-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_sku_attr #######           
+  GlueDataCrawlerdjskuattr:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_sku_attr"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_sku_attr"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_sku_attr"
+                  - "dj_sku_attr-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_styclr_image #######           
+  GlueDataCrawlerdjstyclrimage:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_styclr_image"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_styclr_image"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_styclr_image"
+                  - "dj_styclr_image-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_sup_dept #######           
+  GlueDataCrawlerdjsupdept:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_sup_dept"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_sup_dept"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_sup_dept"
+                  - "dj_sup_dept-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_supp_maint_soh #######           
+  GlueDataCrawlerdjsuppmaintsoh:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_supp_maint_soh"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_supp_maint_soh"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_supp_maint_soh"
+                  - "dj_supp_maint_soh-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventorypositiondatapreparations #######           
+  GlueDataCrawlerinventorypositiondatapreparations:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventorypositiondatapreparations"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventorypositiondatapreparations"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventorypositiondatapreparations"
+                  - "inventorypositiondatapreparations-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on online_inventory_view #######           
+  GlueDataCrawleronlineinventoryview:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of online_inventory_view"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "online_inventory_view"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "online_inventory_view"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on period #######           
+  GlueDataCrawlerperiod:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of period"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "period"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "period"
+                  - "period-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_attributes #######           
+  GlueDataCrawlerragattributes:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_attributes"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_attributes"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_attributes"
+                  - "rag_attributes-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus #######           
+  GlueDataCrawlerragskus:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_skus"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus"
+                  - "rag_skus-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_st #######           
+  GlueDataCrawlerragskusst:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_st"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_skus_st"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_st"
+                  - "rag_skus_st-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_wh #######           
+  GlueDataCrawlerragskuswh:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_wh"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_skus_wh"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_wh"
+                  - "rag_skus_wh-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on skuattributepreparationjob #######           
+  GlueDataCrawlerskuattributepreparationjob:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of skuattributepreparationjob"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "skuattributepreparationjob"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "skuattributepreparationjob"
+                  - "skuattributepreparationjob-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on sups #######           
+  GlueDataCrawlersups:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of sups"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "sups"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "sups"
+                  - "sups-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on upc_ean #######           
+  GlueDataCrawlerupcean:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of upc_ean"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "upc_ean"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "upc_ean"
+                  - "upc_ean-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_dept_loc_exclude #######           
+  GlueDataCrawlerwebdeptlocexclude:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_dept_loc_exclude"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_dept_loc_exclude"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_dept_loc_exclude"
+                  - "web_dept_loc_exclude-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_items_always_available #######           
+  GlueDataCrawlerwebitemsalwaysavailable:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_items_always_available"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_items_always_available"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_items_always_available"
+                  - "web_items_always_available-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_loc_unavail_items #######           
+  GlueDataCrawlerweblocunavailitems:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_loc_unavail_items"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_loc_unavail_items"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_loc_unavail_items"
+                  - "web_loc_unavail_items-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_order_location #######           
+  GlueDataCrawlerweborderlocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_order_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_order_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_order_location"
+                  - "web_order_location-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_reserved_stock #######           
+  GlueDataCrawlerwebreservedstock:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_reserved_stock"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_reserved_stock"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_reserved_stock"
+                  - "web_reserved_stock-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_dispatch_location #######           
+  GlueDataCrawlerinventorydispatchlocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_dispatch_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_dispatch_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_dispatch_location"
+                  - "inventory_dispatch_location-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_dispatch_location_agg #######           
+  GlueDataCrawlerinventorydispatchlocationagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_dispatch_location_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_dispatch_location_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_dispatch_location_agg"
+                  - "inventory_dispatch_location_agg-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Crawler on inventory_pickup_location #######           
+  GlueDataCrawlerinventorypickuplocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_pickup_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_pickup_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_pickup_location"
+                  - "inventory_pickup_location-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_pickup_location_agg #######           
+  GlueDataCrawlerinventorypickuplocationagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_pickup_location_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_pickup_location_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_pickup_location_agg"
+                  - "inventory_pickup_location_agg-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_compute_isams #######           
+  GlueDataCrawlerinventoryavailabilitycomputeisams:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_compute_isams"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_availability_compute_isams"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory_availability_compute_isams"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_dispatch_and_pickup #######           
+  GlueDataCrawlerinventoryavailabilitydispatchandpickup:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_dispatch_and_pickup"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_availability_dispatch_and_pickup"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory_availability_dispatch_and_pickup"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_compute_dispatch_and_pickup_agg #######           
+  GlueDataCrawlerinventoryavailabilitycomputedispatchandpckupagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_compute_dispatch_and_pickup_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "inventory_availability_compute_dispatch_and_pickup_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory_availability_compute_dispatch_and_pickup_agg"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_web_loc_avail_buffer_values #######           
+  GlueDataCrawlerdjweblocavailbuffervalues:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_loc_avail_buffer_values"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_web_loc_avail_buffer_values"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_loc_avail_buffer_values"
+                  - "dj_web_loc_avail_buffer_values-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_web_avail_buffer_values #######           
+  GlueDataCrawlerdjwebavailbuffervalues:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_avail_buffer_values"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_web_avail_buffer_values"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_avail_buffer_values"
+                  - "dj_web_avail_buffer_values-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on item_zone_price #######           
+  GlueDataCrawleritemzoneprice:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of item_zone_price"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "item_zone_price"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "item_zone_price"
+                  - "item_zone_price-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_web_order_options #######           
+  GlueDataCrawlercrweborderoptions:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_web_order_options"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "cr_web_order_options"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_web_order_options"
+                  - "cr_web_order_options-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_delivery_interface_fp_map #######           
+  GlueDataCrawlerdjdeliveryinterfacefpmap:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_delivery_interface_fp_map"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "dj_delivery_interface_fp_map"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_delivery_interface_fp_map"
+                  - "dj_delivery_interface_fp_map-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_freight_providers #######           
+  GlueDataCrawlerwebfreightproviders:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_freight_providers"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "web_freight_providers"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_freight_providers"
+                  - "web_freight_providers-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_consolidated #######           
+  GlueDataCrawlerragskusconsolidated:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_skus_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_consolidated"
+                  - "rag_skus_consolidated-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_attributes_consolidated #######           
+  GlueDataCrawlerragattributesconsolidated:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_attributes_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: Crawlerprefix
+            - "rag_attributes_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_attributes_consolidated"
+                  - "rag_attributes_consolidated-snapshots"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+
+  ####### Glue Job 1 #######
+  DJInventoryPositionsDataPreparationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathInventory
+      GlueVersion: 2.0
+      Timeout: 45
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJInventoryPositionsDataPreparationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 2 #######
+  DJSKUAttributeJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathSkuAttribute
+      GlueVersion: 2.0
+      Timeout: 45
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJSKUAttributeJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 3 #######
+  DJOnlineInventoryViewV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathInventoryView
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJOnlineInventoryViewV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 4 #######
+  DJStoreInventoryConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathStInventoryconsolidation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJStoreInventoryConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 5 #######
+  DJWarehouseInventoryConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathWhInventoryconsolidation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJWarehouseInventoryConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 6 #######
+  DJVendorInventoryConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathVndrInventoryconsolidation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJVendorInventoryConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 7 #######
+  DJInventoryAvailabilityComputeJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathInventoryavailabilitycompute
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJInventoryAvailabilityComputeJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 8 #######
+  InventoryAvailabilityRealtimeComputeJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathInventoryavailabilityrealtimecompute
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: InventoryAvailabilityRealtimeComputeJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Job 9 #######
+  DJInventoryAvailabilityRejectEvaluationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathInventoryavailabilityrejectevaluation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJInventoryAvailabilityRejectEvaluationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+ ####### Glue Job 10 #######
+  DJInventoryAvailabilitySkuAttributeConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathSkuAttributeConsolidation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJSkuAttributeConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Job 11 #######
+  DJSupplierConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathSupplierConsolidation
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJSupplierConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Job 12 #######
+  DJSkuConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathSkuConsolidationJob
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJSkuConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Job 13 #######
+  DJSkuConfigurationConsolidationJobV1:
+    Type: AWS::Glue::Job
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation:
+          Ref: GlueJobScriptPathSkuConfigurationConsolidationJob
+      GlueVersion: 2.0
+      Timeout: 40
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+      Name: DJSkuConfigurationConsolidationJobV1
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+
+  ####### Glue Crawler on cr_product_profile_matrix #######
+  CDCGlueDataCrawlercrproductprofilematrix:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_product_profile_matrix"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_product_profile_matrix"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_product_profile_matrix"
+                  - "cr_product_profile_matrix-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_product_profiles #######
+  CDCGlueDataCrawlercrproductprofiles:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_product_profiles"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_product_profiles"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_product_profiles"
+                  - "cr_product_profiles-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_rag_stylclr #######
+  CDCGlueDataCrawlercrragstylclr:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_rag_stylclr"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_rag_stylclr"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_rag_stylclr"
+                  - "cr_rag_stylclr-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_web_countries #######
+  CDCGlueDataCrawlercrwebcountries:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_web_countries"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_web_countries"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_web_countries"
+                  - "cr_web_countries-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_website_id_map #######
+  CDCGlueDataCrawlercrwebsiteidmap:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_website_id_map"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_website_id_map"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_website_id_map"
+                  - "cr_website_id_map-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on desc_look #######
+  CDCGlueDataCrawlerdesclook:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of desc_look"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "desc_look"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "desc_look"
+                  - "desc_look-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_combined_loc_config #######
+  CDCGlueDataCrawlerdjcombinedlocconfig:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_combined_loc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_combined_loc_config"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_combined_loc_config"
+                  - "dj_combined_loc_config-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Crawler on dj_combined_loc #######
+  CDCGlueDataCrawlerdjcombinedloc:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_combined_loc"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_combined_loc"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_combined_loc"
+                  - "dj_combined_loc-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_combined_loc #######
+  CDCGlueDataCrawlerdjwebintradayavailtrigger:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_intraday_avail_trigger"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_web_intraday_avail_trigger"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_intraday_avail_trigger"
+                  - "dj_web_intraday_avail_trigger-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+
+  ####### Glue Crawler on dj_conc_config #######
+  CDCGlueDataCrawlerdjconcconfig:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_conc_config"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_conc_config"
+                  - "dj_conc_config-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_sku_attr #######
+  CDCGlueDataCrawlerdjskuattr:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_sku_attr"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_sku_attr"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_sku_attr"
+                  - "dj_sku_attr-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_styclr_image #######
+  CDCGlueDataCrawlerdjstyclrimage:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_styclr_image"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_styclr_image"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_styclr_image"
+                  - "dj_styclr_image-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_sup_dept #######
+  CDCGlueDataCrawlerdjsupdept:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_sup_dept"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_sup_dept"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_sup_dept"
+                  - "dj_sup_dept-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_supp_maint_soh #######
+  CDCGlueDataCrawlerdjsuppmaintsoh:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_supp_maint_soh"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_supp_maint_soh"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_supp_maint_soh"
+                  - "dj_supp_maint_soh-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventorypositiondatapreparations #######
+  CDCGlueDataCrawlerinventorypositiondatapreparations:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventorypositiondatapreparations"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventorypositiondatapreparations"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventorypositiondatapreparations"
+                  - "inventorypositiondatapreparations-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on online_inventory_view #######
+  CDCGlueDataCrawleronlineinventoryview:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of online_inventory_view"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "online_inventory_view"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "online_inventory_view"
+                  - "online_inventory_view-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on period #######
+  CDCGlueDataCrawlerperiod:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of period"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "period"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "period"
+                  - "period-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_attributes #######
+  CDCGlueDataCrawlerragattributes:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_attributes"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_attributes"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_attributes"
+                  - "rag_attributes-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus #######
+  CDCGlueDataCrawlerragskus:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_skus"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus"
+                  - "rag_skus-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_st #######           
+  CDCGlueDataCrawlerragskusst:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_st"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_skus_st"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_st"
+                  - "rag_skus_st-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_wh #######           
+  CDCGlueDataCrawlerragskuswh:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_wh"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_skus_wh"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_wh"
+                  - "rag_skus_wh-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on skuattributepreparationjob #######           
+  CDCGlueDataCrawlerskuattributepreparationjob:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of skuattributepreparationjob"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "skuattributepreparationjob"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "skuattributepreparationjob"
+                  - "skuattributepreparationjob-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on sups #######           
+  CDCGlueDataCrawlersups:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of sups"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "sups"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "sups"
+                  - "sups-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on upc_ean #######           
+  CDCGlueDataCrawlerupcean:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of upc_ean"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "upc_ean"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "upc_ean"
+                  - "upc_ean-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_dept_loc_exclude #######           
+  CDCGlueDataCrawlerwebdeptlocexclude:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_dept_loc_exclude"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_dept_loc_exclude"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_dept_loc_exclude"
+                  - "web_dept_loc_exclude-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_items_always_available #######           
+  CDCGlueDataCrawlerwebitemsalwaysavailable:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_items_always_available"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_items_always_available"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_items_always_available"
+                  - "web_items_always_available-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_loc_unavail_items #######           
+  CDCGlueDataCrawlerweblocunavailitems:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_loc_unavail_items"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_loc_unavail_items"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_loc_unavail_items"
+                  - "web_loc_unavail_items-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_order_location #######           
+  CDCGlueDataCrawlerweborderlocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_order_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_order_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_order_location"
+                  - "web_order_location-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_reserved_stock #######           
+  CDCGlueDataCrawlerwebreservedstock:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_reserved_stock"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_reserved_stock"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_reserved_stock"
+                  - "web_reserved_stock-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_supp_maint_soh_consolidated #######
+  DJSuppMaintSOHConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "dj_supp_maint_soh_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "dj_supp_maint_soh_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory-aggregate-dispatch-location #######
+  InventoryAggregateDispatchLocationCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory-aggregate-dispatch-location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-aggregate-dispatch-location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-aggregate-dispatch-location"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory-aggregate-pickup-location #######
+  InventoryAggregatePickupLocationCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-aggregate-pickup-location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-aggregate-pickup-location"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject      
+  ####### Glue Crawler on inventory-availability-compute-realtime #######
+  InventoryAvailabilityComputeRealtimeCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-availability-compute-realtime"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-availability-compute-realtime"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory-availability-compute #######
+  InventoryAvailabilityComputeCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-availability-compute"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-availability-compute"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory-dispatch-location #######
+  InventoryDispatchLocationCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-dispatch-location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-dispatch-location"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory-pickup-location #######
+  InventoryPickupLocationCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory-pickup-location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory-pickup-location"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventorypositions #######
+  InventoryPositionsCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventorypositions i.e DS-1"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventorypositions"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventorypositions"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on onlineinventoryview #######
+  OnlineInventoryViewCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "onlineinventoryview"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "onlineinventoryview"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on period_consolidated #######
+  PeriodConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "period_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "period_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on rag_skus_st_consolidated #######
+  RagSkusSTConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "rag_skus_st_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "rag_skus_st_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on rag_skus_wh_consolidated #######
+  RagSkusWHConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "rag_skus_wh_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "rag_skus_wh_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on skuattributes #######
+  SkuAttributesCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of skuattributes i.e DS-2"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "skuattributes"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "skuattributes"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on web_reserved_stock_consolidated #######
+  WebReservedStockConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "web_reserved_stock_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "web_reserved_stock_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject                                                                
+  ####### Glue Crawler on inventory_dispatch_location #######           
+  CDCGlueDataCrawlerinventorydispatchlocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_dispatch_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_dispatch_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_dispatch_location"
+                  - "inventory_dispatch_location-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  ####### Glue Crawler on inventory_dispatch_location_agg #######           
+  CDCGlueDataCrawlerinventorydispatchlocationagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_dispatch_location_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_dispatch_location_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_dispatch_location_agg"
+                  - "inventory_dispatch_location_agg-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+  
+  ####### Glue Crawler on inventory_pickup_location #######           
+  CDCGlueDataCrawlerinventorypickuplocation:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_pickup_location"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_pickup_location"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_pickup_location"
+                  - "inventory_pickup_location-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_pickup_location_agg #######           
+  CDCGlueDataCrawlerinventorypickuplocationagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_pickup_location_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_pickup_location_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_pickup_location_agg"
+                  - "inventory_pickup_location_agg-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_compute_isams #######           
+  CDCGlueDataCrawlerinventoryavailabilitycomputeisams:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_compute_isams"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_availability_compute_isams"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_availability_compute_isams"
+                  - "inventory_availability_compute_isams-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_dispatch_and_pickup #######           
+  CDCGlueDataCrawlerinventoryavailabilitydispatchandpickup:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_dispatch_and_pickup"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_availability_dispatch_and_pickup"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_availability_dispatch_and_pickup"
+                  - "inventory_availability_dispatch_and_pickup-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_compute_dispatch_and_pickup_agg #######           
+  CDCGlueDataCrawlerinventoryavailabilitycomputedispatchandpckupagg:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_compute_dispatch_and_pickup_agg"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "inventory_availability_compute_dispatch_and_pickup_agg"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "inventory_availability_compute_dispatch_and_pickup_agg"
+                  - "inventory_availability_compute_dispatch_and_pickup_agg-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_web_loc_avail_buffer_values #######           
+  CDCGlueDataCrawlerdjweblocavailbuffervalues:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_loc_avail_buffer_values"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_web_loc_avail_buffer_values"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_loc_avail_buffer_values"
+                  - "dj_web_loc_avail_buffer_values-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_web_avail_buffer_values #######           
+  CDCGlueDataCrawlerdjwebavailbuffervalues:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_web_avail_buffer_values"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_web_avail_buffer_values"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_web_avail_buffer_values"
+                  - "dj_web_avail_buffer_values-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on item_zone_price #######           
+  CDCGlueDataCrawleritemzoneprice:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of item_zone_price"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "item_zone_price"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "item_zone_price"
+                  - "item_zone_price-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_web_order_options #######           
+  CDCGlueDataCrawlercrweborderoptions:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_web_order_options"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "cr_web_order_options"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "cr_web_order_options"
+                  - "cr_web_order_options-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_delivery_interface_fp_map #######           
+  CDCGlueDataCrawlerdjdeliveryinterfacefpmap:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_delivery_interface_fp_map"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "dj_delivery_interface_fp_map"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "dj_delivery_interface_fp_map"
+                  - "dj_delivery_interface_fp_map-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_freight_providers #######           
+  CDCGlueDataCrawlerwebfreightproviders:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_freight_providers"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "web_freight_providers"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "web_freight_providers"
+                  - "web_freight_providers-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_consolidated #######
+  RagSkusConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_conc_config"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "rag_skus_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "rag_skus_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on sups_consolidated #######
+  SupsconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of sups_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "sups_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "sups_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on desc_look_consolidated #######
+  DesclookconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of desc_look_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "desc_look_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "desc_look_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on upc_ean_consolidated #######
+  UpceanconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of upc_ean_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "upc_ean_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "upc_ean_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_attributes_consolidated #######
+  RagattributesConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_attributes_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "rag_attributes_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "rag_attributes_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_styclr_image_consolidated #######
+  DjstyclrimageConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_styclr_image_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "dj_styclr_image_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "dj_styclr_image_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on dj_sku_attr_consolidated #######
+  DjskuattrConsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of dj_sku_attr_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "dj_sku_attr_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "dj_sku_attr_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on cr_rag_stylclr_consolidated #######
+  CrragstylclrconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of cr_rag_stylclr_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "cr_rag_stylclr_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "cr_rag_stylclr_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_items_always_available_consolidated #######
+  WebitemsalwaysavailableconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_items_always_available_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "web_items_always_available_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "web_items_always_available_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_dept_loc_exclude_consolidated #######
+  WebdeptlocexcludeconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_dept_loc_exclude_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "web_dept_loc_exclude_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "web_dept_loc_exclude_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on web_loc_unavail_items_consolidated #######
+  WeblocunavailitemsconsolidatedCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of web_loc_unavail_items_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "web_loc_unavail_items_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "web_loc_unavail_items_consolidated"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_delta_compute #######
+  InventoryAvailabilityDeltaComputeCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_delta_compute"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory_availability_delta_compute"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory_availability_delta_compute"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on inventory_availability_reject_evaluation #######
+  InventoryAvailabilityRejectEvaluationCrawler:
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of inventory_availability_reject_evaluation"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: DatasetCrawlerprefix
+            - "inventory_availability_reject_evaluation"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "inventory_availability_reject_evaluation"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_skus_consolidated #######           
+  CDCGlueDataCrawlerragskusconsolidated:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_skus_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_skus_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_skus_consolidated"
+                  - "rag_skus_consolidated-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  ####### Glue Crawler on rag_attributes_consolidated #######           
+  CDCGlueDataCrawlerragattributesconsolidated:  
+    Type: AWS::Glue::Crawler
+    Properties: 
+      DatabaseName: 
+        Ref: GlueDatabase
+      Description: "Crawler to get schema of rag_attributes_consolidated"
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: CDCCrawlerprefix
+            - "rag_attributes_consolidated"
+            - "crawler"
+      Role:
+        Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/${RepoName}-gluejobsrole
+      SchemaChangePolicy: 
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+        UpdateBehavior: UPDATE_IN_DATABASE
+      Targets: 
+        S3Targets:
+          - Path:
+              Fn::Join:
+                - '/'
+                - - Ref: SourceS3bucket
+                  - "source"
+                  - "djrms"
+                  - "rag_attributes_consolidated"
+                  - "rag_attributes_consolidated-cdc"
+      Tags:
+        whlau:governance:company: !Ref GovernanceCompany
+        whlau:governance:department: !Ref GovernanceDepartment
+        whlau:governance:application: !Ref GovernanceApplication
+        whlau:governance:layer: !Ref GovernanceLayer
+        whlau:governance:environment: !Ref GovernanceEnvironment
+        whlau:governance:brand: !Ref GovernanceBrand
+        whlau:governance:approver: !Ref GovernanceApprover
+        whlau:governance:project: !Ref GovernanceProject
+
+  
+Outputs:
+  GlueDatabaseName:
+    Description: "The name of the glue database"
+    Value:
+      Ref: GlueDatabase
+
+  CrawlerName1:
+    Description: "The crawler name of CR Product Profile Matrix table"
+    Value:
+      Ref: GlueDataCrawlercrproductprofilematrix
+
+  CrawlerName2:
+    Description: "The crawler name of CR Product Profiles table"
+    Value:
+      Ref: GlueDataCrawlercrproductprofiles
+
+  CrawlerName3:
+    Description: "The crawler name of CR Rag Style CLR table"
+    Value:
+      Ref: GlueDataCrawlercrragstylclr
+
+  CrawlerName4:
+    Description: "The crawler name of CR Web Countries table"
+    Value:
+      Ref: GlueDataCrawlercrwebcountries
+
+  CrawlerName5:
+    Description: "The crawler name of CR Website ID Map table"
+    Value:
+      Ref: GlueDataCrawlercrwebsiteidmap
+
+  CrawlerName6:
+    Description: "The crawler name of Des Clook table"
+    Value:
+      Ref: GlueDataCrawlerdesclook
+
+  CrawlerName7:
+    Description: "The crawler name of DJ Combined Loc Config table"
+    Value:
+      Ref: GlueDataCrawlerdjcombinedlocconfig
+
+  CrawlerName8:
+    Description: "The crawler name of DJ Conc Config table"
+    Value:
+      Ref: GlueDataCrawlerdjconcconfig
+
+  CrawlerName9:
+    Description: "The crawler name of DJ SKU Attribute table"
+    Value:
+      Ref: GlueDataCrawlerdjskuattr
+
+  CrawlerName10:
+    Description: "The crawler name of DJ Style CLR Image table"
+    Value:
+      Ref: GlueDataCrawlerdjstyclrimage
+
+  CrawlerName11:
+    Description: "The crawler name of DJ Sup Dept table"
+    Value:
+      Ref: GlueDataCrawlerdjsupdept
+
+  CrawlerName12:
+    Description: "The crawler name of DJ Supp Maintsoh table"
+    Value:
+      Ref: GlueDataCrawlerdjsuppmaintsoh
+
+  CrawlerName13:
+    Description: "The crawler name of Inventory Position Data Preparations table"
+    Value:
+      Ref: GlueDataCrawlerinventorypositiondatapreparations
+
+  CrawlerName14:
+    Description: "The crawler name of Online Inventory View table"
+    Value:
+      Ref: GlueDataCrawleronlineinventoryview
+
+  CrawlerName15:
+    Description: "The crawler name of Period table"
+    Value:
+      Ref: GlueDataCrawlerperiod
+
+  CrawlerName16:
+    Description: "The crawler name of Rag Attributes table"
+    Value:
+      Ref: GlueDataCrawlerragattributes
+
+  CrawlerName17:
+    Description: "The crawler name of Rag SKU's table"
+    Value:
+      Ref: GlueDataCrawlerragskus
+
+  CrawlerName18:
+    Description: "The crawler name of Rag SKU's ST table"
+    Value:
+      Ref: GlueDataCrawlerragskusst
+
+  CrawlerName19:
+    Description: "The crawler name of Rag SKU's WH table"
+    Value:
+      Ref: GlueDataCrawlerragskuswh
+
+  CrawlerName20:
+    Description: "The crawler name of SKU Attribute Preparation Job table"
+    Value:
+      Ref: GlueDataCrawlerskuattributepreparationjob
+
+  CrawlerName21:
+    Description: "The crawler name of SUPS table"
+    Value:
+      Ref: GlueDataCrawlersups
+
+  CrawlerName22:
+    Description: "The crawler name of UPC EAN table"
+    Value:
+      Ref: GlueDataCrawlerupcean
+
+  CrawlerName23:
+    Description: "The crawler name of Web Dept Loc Exclude table"
+    Value:
+      Ref: GlueDataCrawlerwebdeptlocexclude
+
+  CrawlerName24:
+    Description: "The crawler name of Web Items Always Available table"
+    Value:
+      Ref: GlueDataCrawlerwebitemsalwaysavailable
+
+  CrawlerName25:
+    Description: "The crawler name of Web Loc Unavail Items table"
+    Value:
+      Ref: GlueDataCrawlerweblocunavailitems
+
+  CrawlerName26:
+    Description: "The crawler name of Web Order Location table"
+    Value:
+      Ref: GlueDataCrawlerweborderlocation
+
+  CrawlerName27:
+    Description: "The crawler name of Web Reserved Stock table"
+    Value:
+      Ref: GlueDataCrawlerwebreservedstock
+
+  CrawlerName28:
+    Description: "The crawler name of inventory_dispatch_location dataset"
+    Value:
+      Ref: GlueDataCrawlerinventorydispatchlocation
+
+  CrawlerName29:
+    Description: "The crawler name of inventory_dispatch_location_agg dataset"
+    Value:
+      Ref: GlueDataCrawlerinventorydispatchlocationagg
+
+  CrawlerName30:
+    Description: "The crawler name of inventory_pickup_location dataset"
+    Value:
+      Ref: GlueDataCrawlerinventorypickuplocation
+      
+  CrawlerName31:
+    Description: "The crawler name of inventory_pickup_location_agg dataset"
+    Value:
+      Ref: GlueDataCrawlerinventorypickuplocationagg
+      
+  CrawlerName32:
+    Description: "The crawler name of inventory_availability_compute_isams dataset"
+    Value:
+      Ref: GlueDataCrawlerinventoryavailabilitycomputeisams
+      
+  CrawlerName33:
+    Description: "The crawler name of inventory_availability_dispatch_and_pickup dataset"
+    Value:
+      Ref: GlueDataCrawlerinventoryavailabilitydispatchandpickup
+      
+  CrawlerName34:
+    Description: "The crawler name of inventory_availability_compute_dispatch_and_pickup_agg datset"
+    Value:
+      Ref: GlueDataCrawlerinventoryavailabilitycomputedispatchandpckupagg
+
+  CrawlerName35:
+    Description: "The crawler name of dj_web_loc_avail_buffer_values table"
+    Value:
+      Ref: GlueDataCrawlerdjweblocavailbuffervalues
+
+  CrawlerName36:
+    Description: "The crawler name of dj_web_avail_buffer_values table"
+    Value:
+      Ref: GlueDataCrawlerdjwebavailbuffervalues
+
+  CrawlerName37:
+    Description: "The crawler name of cr_web_order_options table"
+    Value:
+      Ref: GlueDataCrawlercrweborderoptions
+
+  CrawlerName38:
+    Description: "The crawler name of item_zone_price table"
+    Value:
+      Ref: GlueDataCrawleritemzoneprice
+
+  CrawlerName39:
+    Description: "The crawler name of dj_delivery_interface_fp_map table"
+    Value:
+      Ref: GlueDataCrawlerdjdeliveryinterfacefpmap
+
+  CrawlerName40:
+    Description: "The crawler name of web_freight_providers table"
+    Value:
+      Ref: GlueDataCrawlerwebfreightproviders
+             
+  DJInventoryPositionsDataPreparationJobV1:
+    Description: "The name of the inventory Position glue job"
+    Value:
+      Ref: DJInventoryPositionsDataPreparationJobV1
+
+  DJSKUAttributeJobV1:
+    Description: "The name of the sku glue job"
+    Value:
+      Ref: DJSKUAttributeJobV1
+
+  DJOnlineInventoryViewV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: DJOnlineInventoryViewV1
+
+  DJStoreInventoryConsolidationJobV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: DJStoreInventoryConsolidationJobV1
+
+  DJWarehouseInventoryConsolidationJobV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: DJWarehouseInventoryConsolidationJobV1
+
+  DJVendorInventoryConsolidationJobV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: DJVendorInventoryConsolidationJobV1      
+
+  DJInventoryAvailabilityComputeJobV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: DJInventoryAvailabilityComputeJobV1      
+
+  InventoryAvailabilityRealtimeComputeJobV1:
+    Description: "The name of the InventoryViewPrep glue job"
+    Value:
+      Ref: InventoryAvailabilityRealtimeComputeJobV1      
+
+  CDCCrawlerName1:
+    Description: "The crawler name of CDC CR Product Profile Matrix table"
+    Value:
+      Ref: CDCGlueDataCrawlercrproductprofilematrix
+
+  CDCCrawlerName2:
+    Description: "The crawler name of CDC CR Product Profiles table"
+    Value:
+      Ref: CDCGlueDataCrawlercrproductprofiles
+
+  CDCCrawlerName3:
+    Description: "The crawler name of CDC CR Rag Style CLR table"
+    Value:
+      Ref: CDCGlueDataCrawlercrragstylclr
+
+  CDCCrawlerName4:
+    Description: "The crawler name of CDC CR Web Countries table"
+    Value:
+      Ref: CDCGlueDataCrawlercrwebcountries
+
+  CDCCrawlerName5:
+    Description: "The crawler name of CDC CR Website ID Map table"
+    Value:
+      Ref: CDCGlueDataCrawlercrwebsiteidmap
+
+  CDCCrawlerName6:
+    Description: "The crawler name of CDC Des Clook table"
+    Value:
+      Ref: CDCGlueDataCrawlerdesclook
+
+  CDCCrawlerName7:
+    Description: "The crawler name of CDC DJ Combined Loc Config table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjcombinedlocconfig
+
+  CDCCrawlerName8:
+    Description: "The crawler name of CDC DJ Conc Config table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjconcconfig
+
+  CDCCrawlerName9:
+    Description: "The crawler name of CDC DJ SKU Attribute table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjskuattr
+
+  CDCCrawlerName10:
+    Description: "The crawler name of CDC DJ Style CLR Image table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjstyclrimage
+
+  CDCCrawlerName11:
+    Description: "The crawler name of CDC DJ Sup Dept table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjsupdept
+
+  CDCCrawlerName12:
+    Description: "The crawler name of CDC DJ Supp Maintsoh table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjsuppmaintsoh
+
+  CDCCrawlerName13:
+    Description: "The crawler name of CDC Inventory Position Data Preparations table"
+    Value:
+      Ref: CDCGlueDataCrawlerinventorypositiondatapreparations
+
+  CDCCrawlerName14:
+    Description: "The crawler name of CDC Online Inventory View table"
+    Value:
+      Ref: CDCGlueDataCrawleronlineinventoryview
+
+  CDCCrawlerName15:
+    Description: "The crawler name of CDC Period table"
+    Value:
+      Ref: CDCGlueDataCrawlerperiod
+
+  CDCCrawlerName16:
+    Description: "The crawler name of CDC Rag Attributes table"
+    Value:
+      Ref: CDCGlueDataCrawlerragattributes
+
+  CDCCrawlerName17:
+    Description: "The crawler name of CDC Rag SKU's table"
+    Value:
+      Ref: CDCGlueDataCrawlerragskus
+
+  CDCCrawlerName18:
+    Description: "The crawler name of CDC Rag SKU's ST table"
+    Value:
+      Ref: CDCGlueDataCrawlerragskusst
+
+  CDCCrawlerName19:
+    Description: "The crawler name of CDC Rag SKU's WH table"
+    Value:
+      Ref: CDCGlueDataCrawlerragskuswh
+
+  CDCCrawlerName20:
+    Description: "The crawler name of CDC SKU Attribute Preparation Job table"
+    Value:
+      Ref: CDCGlueDataCrawlerskuattributepreparationjob
+
+  CDCCrawlerName21:
+    Description: "The crawler name of CDC SUPS table"
+    Value:
+      Ref: CDCGlueDataCrawlersups
+
+  CDCCrawlerName22:
+    Description: "The crawler name of CDC UPC EAN table"
+    Value:
+      Ref: CDCGlueDataCrawlerupcean
+
+  CDCCrawlerName23:
+    Description: "The crawler name of CDC Web Dept Loc Exclude table"
+    Value:
+      Ref: CDCGlueDataCrawlerwebdeptlocexclude
+
+  CDCCrawlerName24:
+    Description: "The crawler name of CDC Web Items Always Available table"
+    Value:
+      Ref: CDCGlueDataCrawlerwebitemsalwaysavailable
+
+  CDCCrawlerName25:
+    Description: "The crawler name of CDC Web Loc Unavail Items table"
+    Value:
+      Ref: CDCGlueDataCrawlerweblocunavailitems
+
+  CDCCrawlerName26:
+    Description: "The crawler name of CDC Web Order Location table"
+    Value:
+      Ref: CDCGlueDataCrawlerweborderlocation
+
+  CDCCrawlerName27:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: CDCGlueDataCrawlerwebreservedstock
+  CDCCrawlerName28:
+    Description: "The crawler name of CDC inventory_dispatch_location dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventorydispatchlocation
+
+  CDCCrawlerName29:
+    Description: "The crawler name of CDC inventory_dispatch_location_agg dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventorydispatchlocationagg
+
+  CDCCrawlerName30:
+    Description: "The crawler name of CDC inventory_pickup_location dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventorypickuplocation
+      
+  CDCCrawlerName31:
+    Description: "The crawler name of CDC inventory_pickup_location_agg dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventorypickuplocationagg
+      
+  CDCCrawlerName32:
+    Description: "The crawler name of CDC inventory_availability_compute_isams dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventoryavailabilitycomputeisams
+      
+  CDCCrawlerName33:
+    Description: "The crawler name of CDC inventory_availability_dispatch_and_pickup dataset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventoryavailabilitydispatchandpickup
+      
+  CDCCrawlerName34:
+    Description: "The crawler name of CDC inventory_availability_compute_dispatch_and_pickup_agg datset"
+    Value:
+      Ref: CDCGlueDataCrawlerinventoryavailabilitycomputedispatchandpckupagg
+  
+  CDCCrawlerName35:
+    Description: "The crawler name of dj_web_loc_avail_buffer_values table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjweblocavailbuffervalues
+
+  CDCCrawlerName36:
+    Description: "The crawler name of dj_web_avail_buffer_values table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjwebavailbuffervalues
+
+  CDCCrawlerName37:
+    Description: "The crawler name of cr_web_order_options table"
+    Value:
+      Ref: CDCGlueDataCrawlercrweborderoptions
+
+  CDCCrawlerName38:
+    Description: "The crawler name of item_zone_price table"
+    Value:
+      Ref: CDCGlueDataCrawleritemzoneprice
+
+  CDCCrawlerName39:
+    Description: "The crawler name of dj_delivery_interface_fp_map table"
+    Value:
+      Ref: CDCGlueDataCrawlerdjdeliveryinterfacefpmap
+
+  CDCCrawlerName40:
+    Description: "The crawler name of web_freight_providers table"
+    Value:
+      Ref: CDCGlueDataCrawlerwebfreightproviders
+   
+  DJSuppMaintSOHConsolidatedCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: DJSuppMaintSOHConsolidatedCrawler
+  
+  InventoryAggregateDispatchLocationCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryAggregateDispatchLocationCrawler
+
+  InventoryAggregatePickupLocationCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryAggregatePickupLocationCrawler
+
+  InventoryAvailabilityComputeRealtimeCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryAvailabilityComputeRealtimeCrawler
+      
+  InventoryAvailabilityComputeCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryAvailabilityComputeCrawler
+  
+  InventoryDispatchLocationCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryDispatchLocationCrawler
+  
+  InventoryPickupLocationCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryPickupLocationCrawler
+      
+  InventoryPositionsCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: InventoryPositionsCrawler
+      
+  OnlineInventoryViewCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: OnlineInventoryViewCrawler
+      
+  PeriodConsolidatedCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: PeriodConsolidatedCrawler
+      
+  RagSkusSTConsolidatedCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: RagSkusSTConsolidatedCrawler
+  
+  RagSkusWHConsolidatedCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: RagSkusWHConsolidatedCrawler
+      
+  SkuAttributesCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: SkuAttributesCrawler
+      
+  WebReservedStockConsolidatedCrawler:
+    Description: "The crawler name of CDC Web Reserved Stock table"
+    Value:
+      Ref: WebReservedStockConsolidatedCrawler    
+  
+  GlueDataCrawlerdjwebintradayavailtrigger:
+    Description: "The crawler name of dj web intraday avail trigger"
+    Value:
+      Ref: GlueDataCrawlerdjwebintradayavailtrigger    
+
+  CDCGlueDataCrawlerdjwebintradayavailtrigger:
+    Description: "The crawler name of CDC dj web intraday avail trigger"
+    Value:
+      Ref: CDCGlueDataCrawlerdjwebintradayavailtrigger  
+  
+  GlueDataCrawlerdjcombinedloc:
+    Description: "The crawler name of CDC dj combined loc"
+    Value:
+      Ref: GlueDataCrawlerdjcombinedloc
+
+  CDCGlueDataCrawlerdjcombinedloc:
+    Description: "The crawler name of CDC dj combined loc"
+    Value:
+      Ref: CDCGlueDataCrawlerdjcombinedloc
+  
+  DJInventoryAvailabilitySkuAttributeConsolidationJobV1:    
+    Description: "The name of the DJInventoryAvailabilitySkuAttributeConsolidation glue job"
+    Value:
+      Ref: DJInventoryAvailabilitySkuAttributeConsolidationJobV1
+
+  DJSupplierConsolidationJobV1:
+    Description: "The name of the DJSupplierConsolidationJobV1 glue job"
+    Value:
+      Ref: DJSupplierConsolidationJobV1
+      
+  DJSkuConsolidationJobV1:
+    Description: "The name of the DJSkuConsolidationJobV1 glue job"
+    Value:
+      Ref: DJSkuConsolidationJobV1
+      
+  DJSkuConfigurationConsolidationJobV1:
+    Description: "The name of the DJSkuConfigurationConsolidationJobV1 glue job"
+    Value:
+      Ref: DJSkuConfigurationConsolidationJobV1
+      
+      

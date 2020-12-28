@@ -1,0 +1,25 @@
+{
+    "Parameters": {
+        "pEnvironment": "uat",
+        "pApplicationName": "inventory-availability",
+        "pKinesisStreamName": "stream",
+        "DestinationBucket": "inventory-availability-dj-rms-uat-source",
+        "pFirehoseStreamName": "firehose",
+        "pKinesisAnalyticsName": "analytics",
+        "pKinesisAnalyticsRoleName": "dj-KinesisAnalyticsRole",
+        "pKinesisAnalyticsRoleDescription": "The role that gives kinesis Analytics access to perform the actions",
+        "pStreamShardCount": "1",
+        "pAuditOutputBucket": "inventory-availability-dj-uat-analytics-audit-output",
+        "pErrorBucket": "inventory-availability-dj-uat-analytics-error-uat",
+        "FireHoseRoleName": "dj-firehoserolecfn",
+        "FireHoseRoleDescription": "The role that gives kinesis firehose access to perform the actions",
+        "GovernanceCompany": "DJ",
+        "GovernanceDepartment": "IT Service",
+        "GovernanceApplication": "Inventory",
+        "GovernanceLayer": "DaaSCompute",
+        "GovernanceEnvironment": "UAT",
+        "GovernanceBrand": "David Jones",
+        "GovernanceApprover": "Kadiresan",
+        "GovernanceProject": "Connected Retail"
+    }
+}

@@ -1,0 +1,719 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "This template create the kinesis firehose"
+
+Parameters:
+  pEnvironment:
+    Description: "Environment name"
+    Type: String
+    AllowedValues:
+      - dev
+      - uat
+  pApplicationName:
+    Description: "Name of the application (all lowercase, no symbols or spaces)"
+    Type: String
+    Default: "crinvavail"
+  pKinesisStreamName:
+    Description: "Stream name."
+    Type: String
+    Default: "mystream"
+  DestinationBucket:
+    Description: "DestinationBucket name."
+    Type: String
+  pFirehoseStreamName:
+    Description: "FirehoseStream name."
+    Type: String
+  pKinesisAnalyticsName:
+    Description: "Kinesis Analytics name"
+    Type: String
+  pKinesisAnalyticsRoleName:
+    Description: "The name of the kinesis Analytics role"
+    Type: String
+  pKinesisAnalyticsRoleDescription:
+    Description: "The description of the kinesis Analytics role"
+    Type: String
+  pStreamShardCount:
+    Description: "Stream Shard Count"
+    Type: Number
+  pAuditOutputBucket:
+    Description: "Analytics audit stream output"
+    Type: String
+  pErrorBucket:
+    Description: "Analytics error stream output"
+    Type: String
+  FireHoseRoleName:
+    Description: "The name of the kinesis firehose role"
+    Type: String
+  FireHoseRoleDescription:
+    Description: "The description of the firehose role"
+    Type: String
+  GovernanceCompany:
+    Description: "The Company name to be given"
+    Type: String
+    AllowedValues:
+      - WHLAU
+      - DJ
+      - CRG
+  GovernanceDepartment:
+    Description: "The Department name to be given"
+    Type: String
+  GovernanceApplication:
+    Description: "The Application name to be given"
+    Type: String
+    AllowedValues:
+      - Inventory
+      - OMS
+  GovernanceLayer:
+    Description: "The Layer name to be given"
+    Type: String
+  GovernanceEnvironment:
+    Description: "The Environment name to be given"
+    Type: String
+    AllowedValues:
+      - DEV
+      - UAT
+      - PROD
+  GovernanceBrand:
+    Description: "The Brand name to be given"
+    Type: String
+  GovernanceApprover:
+    Description: "The Approver name to be given"
+    Type: String
+  GovernanceProject:
+    Description: "The Project name to be given"
+    Type: String
+
+Resources:
+  ####### Kinesis Stream #########
+  rKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - Ref: pKinesisStreamName
+      ShardCount:
+        Ref: pStreamShardCount
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+####### Glue Database #######
+  rGlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId:
+        Ref: AWS::AccountId
+      DatabaseInput:
+        Name:
+          Fn::Join:
+            - '-'
+            - - 'dj'
+              - Ref: pEnvironment
+              - Ref: pApplicationName
+              - "firehose-output"
+
+ ###############Glue Table 23 #######################
+  rFirehoseSchemaTable:
+    Type: AWS::Glue::Table
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseName: !Ref rGlueDatabase
+      TableInput:
+          Name:
+            Fn::Join:
+            - '-'
+            - - 'dj'
+              - Ref: pEnvironment
+              - "firehose-output-table"
+          StorageDescriptor:
+            Columns:
+                - Name: Op
+                  Type: string
+                - Name: sku
+                  Type: int
+                - Name: location
+                  Type: int
+                - Name: location_type
+                  Type: string
+                - Name: stock_on_hand
+                  Type: int
+                - Name: tsf_reserved_qty
+                  Type: int
+                - Name: rtv_qty
+                  Type: int
+                - Name: non_sellable_qty
+                  Type: int
+                - Name: supplier
+                  Type: int
+                - Name: quantity
+                  Type: int
+                - Name: website_adj
+                  Type: int
+                - Name: last_update_datetime
+                  Type: string
+            Compressed: false
+            InputFormat: org.apache.hadoop.mapred.TextInputFormat
+            OutputFormat: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+            Location: s3://inventory-availability-dj-rms-source/source/delta/
+            SerdeInfo:
+                SerializationLibrary: "org.apache.hadoop.hive.serde2.OpenCSVSerde"
+            StoredAsSubDirectories: false
+          Parameters:
+            classification: "csv"
+
+######## Kinesis Firehose ##########
+  rOutputKinesisfirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn: rKinesisFirehoseRole
+    Properties:
+      DeliveryStreamName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - Ref: pFirehoseStreamName
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketArn:
+          Fn::Sub: arn:aws:s3:::${DestinationBucket}
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 64
+        RoleARN:
+          Fn::GetAtt: [rKinesisFirehoseRole, Arn]
+        DataFormatConversionConfiguration:
+          Enabled: true
+          InputFormatConfiguration:
+            Deserializer:
+              OpenXJsonSerDe: {}
+          OutputFormatConfiguration:
+            Serializer:
+              ParquetSerDe: {}
+          SchemaConfiguration:
+            CatalogId:
+              Ref: AWS::AccountId
+            DatabaseName:
+              Ref: rGlueDatabase
+            Region:
+              Ref: AWS::Region
+            RoleARN:
+              Fn::GetAtt: [rKinesisFirehoseRole, Arn]
+            TableName:
+              Ref: rFirehoseSchemaTable
+            VersionId: LATEST
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+######## Kinesis Firehose ##########
+  rErrorKinesisfirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn: rKinesisFirehoseRole
+    Properties:
+      DeliveryStreamName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "fh-error"
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketArn:
+          Fn::Sub: arn:aws:s3:::${pErrorBucket}
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 1
+        RoleARN:
+          Fn::GetAtt: [rKinesisFirehoseRole, Arn]
+        DataFormatConversionConfiguration:
+          Enabled: false
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+######## Kinesis Firehose Audit ##########
+  rAuditOutputKinesisfirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    DependsOn: rKinesisFirehoseRole
+    Properties:
+      DeliveryStreamName:
+        Fn::Join:
+          - '-'
+          - - Ref: GovernanceCompany
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - "fh-op-audit"
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketArn:
+          Fn::Sub: arn:aws:s3:::${pAuditOutputBucket}
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 1
+        RoleARN:
+          Fn::GetAtt: [rKinesisFirehoseRole, Arn]
+        DataFormatConversionConfiguration:
+          Enabled: false
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+  ######## KinesisAnalyticsApplication ##########
+  rKinesisAnalyticsApplication:
+    Type: AWS::KinesisAnalytics::Application
+    Properties:
+      ApplicationName:
+        Fn::Join:
+          - '-'
+          - - "dj"
+            - Ref: pApplicationName
+            - Ref: pEnvironment
+            - Ref: pKinesisAnalyticsName
+      ApplicationDescription: "Kinesis Analytics for Inventory Application compute"
+      ApplicationCode: !Sub |
+            --#######Inventory Availability KSQL#########
+            --Input Stream: SOURCE_SQL_STREAM_001
+            --in_application Stream: DESTINATION_SQL_STREAM1
+            --Destination Stream: DESTINATION_SQL_STREAM
+            --Error Stream: error_stream
+            --Tumbling Window Time settings is configurable
+            --##############################################
+
+            --create destination stream
+            CREATE OR REPLACE STREAM "DESTINATION_SQL_STREAM" (
+            "Op" CHAR(1),
+            "sku" INTEGER,
+            "location" INTEGER,
+            "stock_on_hand" INTEGER,
+            "tsf_reserved_qty" INTEGER,
+            "rtv_qty" INTEGER,
+            "non_sellable_qty" INTEGER,
+            "location_type" CHAR(1),
+            "supplier" INTEGER,
+            "quantity" INTEGER,
+            "website_adj" INTEGER,
+            "last_update_datetime" TIMESTAMP
+            );
+
+            CREATE OR REPLACE STREAM "DESTINATION_SQL_STREAM3" (
+            DEST_ROWTIME TIMESTAMP,
+            responseCount SMALLINT);
+
+            CREATE STREAM "DESTINATION_SQL_STREAM2" (
+            "SEQUENCE_NUMBER" varchar(100),
+            SOURCE_ROWTIME TIMESTAMP,
+            responseCount SMALLINT);
+
+            --create in-application stream
+            CREATE OR REPLACE STREAM "DESTINATION_SQL_STREAM1" (
+            "sku" INTEGER,
+            "location" INTEGER,
+            "last_update_datetime" TIMESTAMP
+            );
+
+            --create pump for in-application stream after max time aggregation
+            CREATE OR REPLACE PUMP "myPUMP1" AS
+            INSERT INTO "DESTINATION_SQL_STREAM1"
+
+                SELECT STREAM  "sku","location", MAX("last_update_datetime") as MaxTime
+                FROM  "SOURCE_SQL_STREAM_001"
+                GROUP BY "sku","location",
+                STEP("SOURCE_SQL_STREAM_001".ROWTIME BY INTERVAL '10' SECOND) ;
+
+            --create pump for destination stream after joining the in-application stream
+            CREATE OR REPLACE PUMP "myPUMP" AS
+            INSERT INTO "DESTINATION_SQL_STREAM"
+
+                SELECT STREAM T1."Op",T1."sku",T1."location",T1."stock_on_hand",T1."tsf_reserved_qty",
+                T1."rtv_qty",T1."non_sellable_qty",T1."location_type",T1."supplier",T1."quantity",T1."website_adj",T1."last_update_datetime"
+                FROM  "SOURCE_SQL_STREAM_001" OVER (RANGE INTERVAL '10' SECOND PRECEDING) AS T1
+                INNER JOIN "DESTINATION_SQL_STREAM1" AS T2
+                ON T1."sku" = T2."sku" and
+                T1."location"= T2."location"
+                where T1."last_update_datetime" = T2."last_update_datetime";
+                --and T1.ROWTIME= T2.ROWTIME;
+                --STEP("SOURCE_SQL_STREAM_001".ROWTIME BY INTERVAL '60' SECOND);
+
+            CREATE OR REPLACE PUMP "myPUMP2" AS
+            INSERT INTO "DESTINATION_SQL_STREAM2"
+                  SELECT STREAM logstream."SEQUENCE_NUMBER",logstream.ROWTIME,
+                  COUNT(*) as responseCount
+                  FROM "SOURCE_SQL_STREAM_001" logstream
+                  GROUP BY logstream."SEQUENCE_NUMBER",logstream.ROWTIME,
+                  FLOOR((logstream.ROWTIME - TIMESTAMP '1970-01-01 00:00:00') MINUTE / 10 TO SECOND);
+
+            CREATE OR REPLACE PUMP "myPUMP3" AS
+            INSERT INTO "DESTINATION_SQL_STREAM3"
+                  SELECT STREAM logstream.ROWTIME,
+                  COUNT(*) as responseCount
+                  FROM "DESTINATION_SQL_STREAM" logstream
+                  GROUP BY logstream.ROWTIME,
+                  FLOOR((logstream.ROWTIME - TIMESTAMP '1970-01-01 00:00:00') MINUTE / 10 TO SECOND);
+
+            --####End of KSQL######
+      Inputs:
+      - NamePrefix: "SOURCE_SQL_STREAM"
+        InputSchema:
+          RecordColumns:
+           - Name: "Op"
+             SqlType: "CHAR(1)"
+             Mapping: "$[0:].Op"
+           - Name: "dms_timestamp"
+             SqlType: "TIMESTAMP"
+             Mapping: "$[0:].TIMESTAMP"
+           - Name: "sku"
+             SqlType: "INTEGER"
+             Mapping: "$[0:].sku"
+           - Name: "location"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].location"
+           - Name: "stock_on_hand"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].stock_on_hand"
+           - Name: "tsf_reserved_qty"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].tsf_reserved_qty"
+           - Name: "rtv_qty"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].rtv_qty"
+           - Name: "non_sellable_qty"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].non_sellable_qty"
+           - Name: "location_type"
+             SqlType: "CHAR(1)"
+             Mapping: "$[0:].location_type"
+           - Name: "supplier"
+             SqlType: "DECIMAL"
+             Mapping: "$[0:].supplier"
+           - Name: "quantity"
+             SqlType: "INTEGER"
+             Mapping: "$[0:].quantity"
+           - Name: "website_adj"
+             SqlType: "INTEGER"
+             Mapping: "$[0:].website_adj"
+           - Name: "last_update_datetime"
+             SqlType: "TIMESTAMP"
+             Mapping: "$[0:].last_update_datetime"
+          RecordEncoding: "UTF-8"
+          RecordFormat:
+            RecordFormatType: "JSON"
+            MappingParameters:
+              JSONMappingParameters:
+                RecordRowPath: "$[0:]"
+        KinesisStreamsInput:
+          ResourceARN:
+            Fn::GetAtt: [rKinesisStream, Arn]
+          RoleARN:
+            Fn::GetAtt: [rKinesisAnalyticsRole, Arn]
+
+######## KinesisAnalyticsApplication Output##########
+  rKinesisApplicationOutput:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    DependsOn: rKinesisAnalyticsApplication
+    Properties:
+      ApplicationName:
+        Ref: rKinesisAnalyticsApplication
+      Output:
+        Name: DESTINATION_SQL_STREAM
+        DestinationSchema:
+          RecordFormatType: "JSON"
+        KinesisFirehoseOutput:
+          ResourceARN:
+            Fn::GetAtt: [rOutputKinesisfirehose, Arn]
+          RoleARN:
+            Fn::GetAtt: [rKinesisAnalyticsRole, Arn]
+######## KinesisAnalyticsApplication Output Audit##########
+  rKinesisApplicationOutputAudit:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    DependsOn: rKinesisAnalyticsApplication
+    Properties:
+      ApplicationName:
+        Ref: rKinesisAnalyticsApplication
+      Output:
+        Name: DESTINATION_SQL_STREAM3
+        DestinationSchema:
+          RecordFormatType: "JSON"
+        KinesisFirehoseOutput:
+          ResourceARN:
+            Fn::GetAtt: [rAuditOutputKinesisfirehose, Arn]
+          RoleARN:
+            Fn::GetAtt: [rKinesisAnalyticsRole, Arn]
+######## KinesisAnalyticsApplication Output##########
+  rKinesisApplicationError:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    DependsOn: rKinesisAnalyticsApplication
+    Properties:
+      ApplicationName:
+        Ref: rKinesisAnalyticsApplication
+      Output:
+        Name: error_stream
+        DestinationSchema:
+          RecordFormatType: "JSON"
+        KinesisFirehoseOutput:
+          ResourceARN:
+            Fn::GetAtt: [rErrorKinesisfirehose, Arn]
+          RoleARN:
+            Fn::GetAtt: [rKinesisAnalyticsRole, Arn]
+
+######## KinesisAnalyticsApplication Role ##########
+  rKinesisAnalyticsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Ref: pKinesisAnalyticsRoleName
+      Description:
+        Ref: pKinesisAnalyticsRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: AllowStream
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadInputKinesis
+                Effect: Allow
+                Action:
+                  - kinesis:DescribeStream
+                  - kinesis:GetShardIterator
+                  - kinesis:GetRecords
+                Resource:
+                  - Fn::GetAtt: [rKinesisStream,Arn]
+              - Sid: WriteOutputFirehose
+                Effect: Allow
+                Action:
+                - firehose:DescribeDeliveryStream
+                - firehose:PutRecord
+                - firehose:PutRecordBatch
+                Resource:
+                 - Fn::GetAtt: [rOutputKinesisfirehose, Arn]
+              - Sid: WriteErrorFirehose
+                Effect: Allow
+                Action:
+                - firehose:DescribeDeliveryStream
+                - firehose:PutRecord
+                - firehose:PutRecordBatch
+                Resource:
+                 - Fn::GetAtt: [rErrorKinesisfirehose, Arn]
+              - Sid: WriteOutputAuditFirehose
+                Effect: Allow
+                Action:
+                - firehose:DescribeDeliveryStream
+                - firehose:PutRecord
+                - firehose:PutRecordBatch
+                Resource:
+                 - Fn::GetAtt: [rAuditOutputKinesisfirehose, Arn]
+              - Sid: Logs
+                Effect: Allow
+                Action:
+                -  logs:CreateLogGroup
+                -  logs:CreateLogStream
+                -  logs:PutLogEvents
+                Resource:
+                 - "*"
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+######## KinesisFirehose Role ##########
+  rKinesisFirehoseRole:
+    Type: AWS::IAM::Role
+    DependsOn:
+      - rGlueDatabase
+      - rFirehoseSchemaTable
+    Properties:
+      RoleName:
+        Ref: FireHoseRoleName
+      Description:
+        Ref: FireHoseRoleDescription
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: FirehosePolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:GetTable
+                  - glue:GetTableVersion
+                  - glue:GetTableVersions
+                Resource:
+                  - Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog
+                  - Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/dj-${pEnvironment}-${pApplicationName}-firehose-output
+                  - Fn::Sub: arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/dj-${pEnvironment}-${pApplicationName}-firehose-output/dj-${pEnvironment}-firehose-output-table
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${DestinationBucket}
+                  - Fn::Sub: arn:aws:s3:::${DestinationBucket}/*
+                  - Fn::Sub: arn:aws:s3:::${pAuditOutputBucket}
+                  - Fn::Sub: arn:aws:s3:::${pAuditOutputBucket}/*
+                  - Fn::Sub: arn:aws:s3:::${pErrorBucket}
+                  - Fn::Sub: arn:aws:s3:::${pErrorBucket}/*
+      Tags:
+        - Key: 'whlau:governance:company'
+          Value: !Ref GovernanceCompany
+        - Key: 'whlau:governance:department'
+          Value: !Ref GovernanceDepartment
+        - Key: 'whlau:governance:application'
+          Value: !Ref GovernanceApplication
+        - Key: 'whlau:governance:layer'
+          Value: !Ref GovernanceLayer
+        - Key: 'whlau:governance:environment'
+          Value: !Ref GovernanceEnvironment
+        - Key: 'whlau:governance:brand'
+          Value: !Ref GovernanceBrand
+        - Key: 'whlau:governance:Approver'
+          Value: !Ref GovernanceApprover
+        - Key: 'whlau:governance:Project'
+          Value: !Ref GovernanceProject
+
+Outputs:
+  KinesisStreamArn:
+    Description: "The ARN of the kinesis stream"
+    Value:
+      Fn::GetAtt: [rKinesisStream, Arn]
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-kinesisStreamArn
+
+  KinesisFirehoseArn:
+    Description: "The ARN of the kinesis firehose delivery stream"
+    Value:
+      Fn::GetAtt: [rOutputKinesisfirehose, Arn]
+
+  KinesisFirehoseErrorArn:
+    Description: "The ARN of the kinesis firehose delivery stream for error"
+    Value:
+      Fn::GetAtt: [rErrorKinesisfirehose, Arn]
+
+  KinesisAnalyticsApplication:
+    Description: "The name of the kinesis analytics application"
+    Value:
+      Ref: rKinesisAnalyticsApplication
+
+  KinesisAnalyticsApplicationOutput:
+    Description: "The name of the kinesis analytics application output"
+    Value:
+      Ref: rKinesisApplicationOutput
+
+  KinesisAnalyticsApplicationError:
+    Description: "The name of the kinesis analytics application error"
+    Value:
+      Ref: rKinesisApplicationError
+
+  KinesisAnalyticsRoleArn:
+    Description: "The role ARN for the kinesis analytics application"
+    Value:
+      Fn::GetAtt: [rKinesisAnalyticsRole, Arn]
+
+  KinesisFirehoseRoleArn:
+    Description: "The role ARN of the kinesis firehose"
+    Value:
+      Fn::GetAtt: [rKinesisFirehoseRole, Arn]
+
+  KinesisFirehoseAuditArn:
+    Description: "The ARN of the kinesis firehose delivery stream for audit"
+    Value:
+      Fn::GetAtt: [rAuditOutputKinesisfirehose, Arn]
+
+  KinesisAnalyticsApplicationOutputAudit:
+    Description: "The name of the kinesis analytics application audit"
+    Value:
+      Ref: rKinesisApplicationOutputAudit
+
+  FirehoseSchemaTable:
+    Description: "The name of the firehose output schema table"
+    Value:
+      Ref: rFirehoseSchemaTable
+
+  GlueDatabase:
+    Description: "The name of the firehose output schema Database"
+    Value:
+      Ref: rGlueDatabase

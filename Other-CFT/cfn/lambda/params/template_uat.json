@@ -1,0 +1,28 @@
+{
+    "Parameters": {
+        "pSourceAccountNumber": "315785799772",
+        "pDevSourceBucket": "whlau-daas-dev-ap-southeast-2-315785799772-raw",
+        "pUATSourceBucket": "whlau-daas-uat-ap-southeast-2-435298438412-raw",
+        "pKinesisStreamName": "DJ-inventory-availability-uat-stream",
+        "pLambdaLayerName": "DJ-inventory-availability-python-layer",
+        "pLambdaLayerVersion": "1",
+        "plambdaLibBucket": "inventory-availability-dj-uat-lambda-lib",
+        "pLambdaLayerDesc": "pandas-pyarrow-numpy-s3fs-fsspec",
+        "pDestinationBucket": "inventory-availability-dj-rms-uat-source",
+        "pDeltaLambdaMemorySize": "512",
+        "pInitialLambdaMemorySize": "512",
+        "pInitialLambdaTimeout": "240",
+        "pDeltaLambdaTimeout": "240",
+        "pDeltaLambdaStreamRecLimit": "20000",
+        "pEmailGroup": "siva.kumar@davidjones.com.au",
+        "pSQSName": "whlau-daas-uat-routing-queue",
+        "pGovernanceCompany": "DJ",
+        "pGovernanceDepartment": "Digital",
+        "pGovernanceApplication": "Inventory",
+        "pGovernanceLayer": "DaaSCompute",
+        "pGovernanceEnvironment": "UAT",
+        "pGovernanceBrand": "David Jones",
+        "pGovernanceApprover": "Kadiresan",
+        "pGovernanceProject": "Connected Retail"
+    }
+}
